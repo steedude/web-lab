@@ -1,0 +1,9 @@
+{
+  "brand": "Nuxt 4 起始專案",
+  "title": "基本環境已經就緒",
+  "description": "Nuxt 4、TypeScript、Pinia、i18n、Tailwind CSS 與持久化狀態都已接好。",
+  "increment": "加一",
+  "language": "語言",
+  "persistedCount": "重新整理後仍會保留的計數",
+  "reset": "重設"
+}

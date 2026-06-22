@@ -1,0 +1,9 @@
+{
+  "brand": "Nuxt 4 Starter",
+  "title": "Your foundation is ready",
+  "description": "Nuxt 4, TypeScript, Pinia, i18n, Tailwind CSS, and persisted state are connected.",
+  "increment": "Increment",
+  "language": "Language",
+  "persistedCount": "This count survives a page refresh",
+  "reset": "Reset"
+}
