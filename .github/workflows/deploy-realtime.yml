@@ -1,0 +1,74 @@
+name: Deploy realtime server
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - services/realtime/**
+      - deploy/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/deploy-realtime.yml
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-realtime-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build realtime server
+        run: pnpm --filter @web-lab/realtime build
+
+      - name: Create production bundle
+        run: |
+          install -d /tmp/realtime-release
+          cp services/realtime/package.json /tmp/realtime-release/package.json
+          cp -R services/realtime/dist /tmp/realtime-release/dist
+          npm install --omit=dev --ignore-scripts --prefix /tmp/realtime-release
+          tar -czf /tmp/realtime-release.tgz -C /tmp/realtime-release .
+
+      - name: Configure SSH
+        env:
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+          OCI_KNOWN_HOSTS: ${{ secrets.OCI_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_deploy
+          chmod 600 ~/.ssh/oci_deploy
+          printf '%s\n' "$OCI_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+        run: scp -i ~/.ssh/oci_deploy /tmp/realtime-release.tgz "$OCI_USER@$OCI_HOST:/tmp/realtime-${GITHUB_SHA}.tgz"
+
+      - name: Activate release
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+        run: ssh -i ~/.ssh/oci_deploy "$OCI_USER@$OCI_HOST" "sudo /usr/local/bin/deploy-realtime /tmp/realtime-${GITHUB_SHA}.tgz ${GITHUB_SHA}"

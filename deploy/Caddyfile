@@ -1,0 +1,11 @@
+ws.3854335.com {
+    handle /health {
+        reverse_proxy 127.0.0.1:3001
+    }
+
+    handle /ws {
+        reverse_proxy 127.0.0.1:3001
+    }
+
+    respond "WebSocket server is online" 200
+}
