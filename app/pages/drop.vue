@@ -1,37 +1,23 @@
 <script setup lang="ts">
+import type { DropChatItem, DropDataMessage, IncomingDropFile } from '~/types/drop.type'
 import QRCode from 'qrcode'
-
-type DropRole = 'drop-host' | 'drop-guest'
-
-interface ChatItem {
-  id: string
-  kind: 'text' | 'file' | 'system'
-  mine: boolean
-  name?: string
-  size?: number
-  text?: string
-  url?: string
-}
-
-interface IncomingFile {
-  chunks: ArrayBuffer[]
-  name: string
-  received: number
-  size: number
-  type: string
-}
+import { DROP_FILE_TRANSFER_CONFIG, DROP_QR_CONFIG, DROP_RTC_CONFIG } from '~/configs/realtime.config'
+import { DropMessageKind } from '~/types/drop.type'
+import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
+import { formatBytes } from '~/utils/file.util'
+import { createRoomCode, isRoomCode, normalizeRoomCode } from '~/utils/realtime.util'
 
 const route = useRoute()
 const router = useRouter()
 const roomInput = ref(typeof route.query.room === 'string' ? route.query.room.toUpperCase() : '')
 const roomId = ref('')
-const role = ref<DropRole>('drop-host')
+const role = ref<RealtimeRole.DropHost | RealtimeRole.DropGuest>(RealtimeRole.DropHost)
 const started = ref(false)
 const qrCode = ref('')
 const copied = ref(false)
 const textInput = ref('')
 const transferProgress = ref<number | null>(null)
-const messages = ref<ChatItem[]>([])
+const messages = ref<DropChatItem[]>([])
 const connectionState = ref<RTCPeerConnectionState>('new')
 const channelState = ref<RTCDataChannelState>('closed')
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
@@ -41,27 +27,22 @@ const localePath = useLocalePath()
 const room = useRealtimeRoom(roomId, role)
 let peer: RTCPeerConnection | null = null
 let channel: RTCDataChannel | null = null
-let incomingFile: IncomingFile | null = null
+let incomingFile: IncomingDropFile | null = null
 
 const isReady = computed(() => channelState.value === 'open' && connectionState.value === 'connected')
 const joinUrl = computed(() => import.meta.client && roomId.value
   ? `${window.location.origin}/drop?room=${roomId.value}`
   : '')
 
-function makeRoomCode() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('')
-}
-
 function addSystem(text: string) {
-  messages.value.push({ id: crypto.randomUUID(), kind: 'system', mine: false, text })
+  messages.value.push({ id: crypto.randomUUID(), kind: DropMessageKind.System, mine: false, text })
 }
 
 function setupChannel(nextChannel: RTCDataChannel) {
   channel = nextChannel
   channelState.value = nextChannel.readyState
   channel.binaryType = 'arraybuffer'
-  channel.bufferedAmountLowThreshold = 256 * 1024
+  channel.bufferedAmountLowThreshold = DROP_FILE_TRANSFER_CONFIG.bufferLowThreshold
 
   channel.addEventListener('open', () => {
     channelState.value = nextChannel.readyState
@@ -77,20 +58,20 @@ function setupChannel(nextChannel: RTCDataChannel) {
   channel.addEventListener('close', () => addSystem(t('drop.system.offline')))
   channel.addEventListener('message', (event) => {
     if (typeof event.data === 'string') {
-      const data = JSON.parse(event.data) as { kind: string, name?: string, size?: number, text?: string, type?: string }
+      const data = JSON.parse(event.data) as DropDataMessage
 
-      if (data.kind === 'text' && data.text) {
-        messages.value.push({ id: crypto.randomUUID(), kind: 'text', mine: false, text: data.text })
+      if (data.kind === DropMessageKind.Text && data.text) {
+        messages.value.push({ id: crypto.randomUUID(), kind: DropMessageKind.Text, mine: false, text: data.text })
       }
-      else if (data.kind === 'file:start' && data.name && data.size !== undefined) {
+      else if (data.kind === DropMessageKind.FileStart && data.name && data.size !== undefined) {
         incomingFile = { chunks: [], name: data.name, received: 0, size: data.size, type: data.type || 'application/octet-stream' }
         transferProgress.value = 0
       }
-      else if (data.kind === 'file:end' && incomingFile) {
+      else if (data.kind === DropMessageKind.FileEnd && incomingFile) {
         const blob = new Blob(incomingFile.chunks, { type: incomingFile.type })
         messages.value.push({
           id: crypto.randomUUID(),
-          kind: 'file',
+          kind: DropMessageKind.File,
           mine: false,
           name: incomingFile.name,
           size: incomingFile.size,
@@ -115,14 +96,14 @@ function createPeer() {
   peer?.close()
   channel = null
   channelState.value = 'closed'
-  peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }] })
+  peer = new RTCPeerConnection(DROP_RTC_CONFIG)
   connectionState.value = peer.connectionState
   peer.addEventListener('connectionstatechange', () => {
     connectionState.value = peer?.connectionState ?? 'closed'
   })
   peer.addEventListener('icecandidate', (event) => {
     if (event.candidate)
-      room.send('signal:ice', { candidate: event.candidate.toJSON() })
+      room.send(RealtimeMessageType.SignalIce, { candidate: event.candidate.toJSON() })
   })
   peer.addEventListener('datachannel', event => setupChannel(event.channel))
   return peer
@@ -133,41 +114,41 @@ async function createOffer() {
   setupChannel(pc.createDataChannel('drop', { ordered: true }))
   const offer = await pc.createOffer()
   await pc.setLocalDescription(offer)
-  room.send('signal:offer', { sdp: offer })
+  room.send(RealtimeMessageType.SignalOffer, { sdp: offer })
 }
 
-async function handleSignal(message: { type: string, payload?: Record<string, unknown> }) {
-  if (message.type === 'peer:joined' && role.value === 'drop-host') {
+async function handleSignal(message: { type: RealtimeMessageType, payload?: Record<string, unknown> }) {
+  if (message.type === RealtimeMessageType.PeerJoined && role.value === RealtimeRole.DropHost) {
     await createOffer()
   }
-  else if (message.type === 'signal:offer') {
+  else if (message.type === RealtimeMessageType.SignalOffer) {
     const pc = createPeer()
     await pc.setRemoteDescription(message.payload?.sdp as RTCSessionDescriptionInit)
     const answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
-    room.send('signal:answer', { sdp: answer })
+    room.send(RealtimeMessageType.SignalAnswer, { sdp: answer })
   }
-  else if (message.type === 'signal:answer' && peer) {
+  else if (message.type === RealtimeMessageType.SignalAnswer && peer) {
     await peer.setRemoteDescription(message.payload?.sdp as RTCSessionDescriptionInit)
   }
-  else if (message.type === 'signal:ice' && peer && message.payload?.candidate) {
+  else if (message.type === RealtimeMessageType.SignalIce && peer && message.payload?.candidate) {
     await peer.addIceCandidate(message.payload.candidate as RTCIceCandidateInit)
   }
 }
 
-async function start(nextRole: DropRole, code?: string) {
-  const normalized = (code || makeRoomCode()).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
-  if (normalized.length !== 6)
+async function start(nextRole: RealtimeRole.DropHost | RealtimeRole.DropGuest, code?: string) {
+  const normalized = normalizeRoomCode(code || createRoomCode())
+  if (!isRoomCode(normalized))
     return
 
   role.value = nextRole
   roomId.value = normalized
   started.value = true
-  await router.replace({ query: nextRole === 'drop-guest' ? { room: normalized } : {} })
+  await router.replace({ query: nextRole === RealtimeRole.DropGuest ? { room: normalized } : {} })
 
-  if (nextRole === 'drop-host') {
+  if (nextRole === RealtimeRole.DropHost) {
     await nextTick()
-    qrCode.value = await QRCode.toDataURL(joinUrl.value, { margin: 1, width: 320, color: { dark: '#171714', light: '#ffffff' } })
+    qrCode.value = await QRCode.toDataURL(joinUrl.value, DROP_QR_CONFIG)
   }
 }
 
@@ -175,13 +156,13 @@ function sendText() {
   const text = textInput.value.trim()
   if (!text || channel?.readyState !== 'open')
     return
-  channel.send(JSON.stringify({ kind: 'text', text }))
-  messages.value.push({ id: crypto.randomUUID(), kind: 'text', mine: true, text })
+  channel.send(JSON.stringify({ kind: DropMessageKind.Text, text }))
+  messages.value.push({ id: crypto.randomUUID(), kind: DropMessageKind.Text, mine: true, text })
   textInput.value = ''
 }
 
 function waitForBuffer() {
-  if (!channel || channel.bufferedAmount < 512 * 1024)
+  if (!channel || channel.bufferedAmount < DROP_FILE_TRANSFER_CONFIG.maxBufferedAmount)
     return Promise.resolve()
   return new Promise<void>((resolve) => {
     channel?.addEventListener('bufferedamountlow', () => resolve(), { once: true })
@@ -189,19 +170,19 @@ function waitForBuffer() {
 }
 
 async function sendFile(file: File) {
-  if (!channel || channel.readyState !== 'open' || file.size > 50 * 1024 * 1024)
+  if (!channel || channel.readyState !== 'open' || file.size > DROP_FILE_TRANSFER_CONFIG.maxFileSize)
     return
 
-  channel.send(JSON.stringify({ kind: 'file:start', name: file.name, size: file.size, type: file.type }))
-  const chunkSize = 16 * 1024
+  channel.send(JSON.stringify({ kind: DropMessageKind.FileStart, name: file.name, size: file.size, type: file.type }))
+  const chunkSize = DROP_FILE_TRANSFER_CONFIG.chunkSize
   transferProgress.value = 0
   for (let offset = 0; offset < file.size; offset += chunkSize) {
     await waitForBuffer()
     channel.send(await file.slice(offset, offset + chunkSize).arrayBuffer())
     transferProgress.value = Math.min(100, Math.round(((offset + chunkSize) / file.size) * 100))
   }
-  channel.send(JSON.stringify({ kind: 'file:end' }))
-  messages.value.push({ id: crypto.randomUUID(), kind: 'file', mine: true, name: file.name, size: file.size })
+  channel.send(JSON.stringify({ kind: DropMessageKind.FileEnd }))
+  messages.value.push({ id: crypto.randomUUID(), kind: DropMessageKind.File, mine: true, name: file.name, size: file.size })
   transferProgress.value = null
 }
 
@@ -219,17 +200,9 @@ async function copyJoinUrl() {
   setTimeout(() => copied.value = false, 1500)
 }
 
-function formatBytes(size = 0) {
-  if (size < 1024)
-    return `${size} B`
-  if (size < 1024 ** 2)
-    return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 ** 2).toFixed(1)} MB`
-}
-
 onMounted(() => {
-  if (roomInput.value.length === 6)
-    start('drop-guest', roomInput.value)
+  if (isRoomCode(roomInput.value))
+    start(RealtimeRole.DropGuest, roomInput.value)
 })
 
 watch(room.latestMessage, (message) => {
@@ -265,15 +238,15 @@ onBeforeUnmount(() => {
         </p>
       </div>
       <div class="border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#171714] sm:p-7">
-        <button class="focus-ring w-full border-2 border-ink bg-sky px-5 py-5 text-left text-xl font-black transition hover:-translate-y-1" @click="start('drop-host')">
+        <button class="focus-ring w-full border-2 border-ink bg-sky px-5 py-5 text-left text-xl font-black transition hover:-translate-y-1" @click="start(RealtimeRole.DropHost)">
           {{ t('drop.actions.createRoom') }} <span class="float-right">{{ t('common.arrowRight') }}</span>
         </button>
         <div class="my-5 flex items-center gap-3 text-xs font-black tracking-[.2em]">
           <span class="h-px flex-1 bg-ink/30" />{{ t('drop.joinDivider') }}<span class="h-px flex-1 bg-ink/30" />
         </div>
-        <form class="flex gap-2" @submit.prevent="start('drop-guest', roomInput)">
-          <input v-model="roomInput" maxlength="6" placeholder="ABC123" class="focus-ring min-w-0 flex-1 border-2 border-ink bg-paper px-4 py-4 font-mono text-xl font-black uppercase" @input="roomInput = roomInput.toUpperCase().replace(/[^A-Z0-9]/g, '')">
-          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-40" :disabled="roomInput.length !== 6">
+        <form class="flex gap-2" @submit.prevent="start(RealtimeRole.DropGuest, roomInput)">
+          <input v-model="roomInput" maxlength="6" placeholder="ABC123" class="focus-ring min-w-0 flex-1 border-2 border-ink bg-paper px-4 py-4 font-mono text-xl font-black uppercase" @input="roomInput = normalizeRoomCode(roomInput)">
+          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-40" :disabled="!isRoomCode(roomInput)">
             {{ t('drop.actions.join') }}
           </button>
         </form>
@@ -293,7 +266,7 @@ onBeforeUnmount(() => {
           {{ isReady ? t('drop.status.ready') : t('drop.status.waiting') }}
         </div>
 
-        <template v-if="role === 'drop-host'">
+        <template v-if="role === RealtimeRole.DropHost">
           <div class="mt-6 border-2 border-ink bg-white p-3">
             <img v-if="qrCode" :src="qrCode" :alt="t('drop.qrAlt')" class="w-full">
           </div>
@@ -327,12 +300,12 @@ onBeforeUnmount(() => {
               </p>
             </div>
           </div>
-          <div v-for="message in messages" :key="message.id" class="max-w-[85%]" :class="[message.mine ? 'ml-auto' : '', message.kind === 'system' ? 'mx-auto text-center' : '']">
-            <p v-if="message.kind === 'system'" class="text-xs font-bold text-ink/55">
+          <div v-for="message in messages" :key="message.id" class="max-w-[85%]" :class="[message.mine ? 'ml-auto' : '', message.kind === DropMessageKind.System ? 'mx-auto text-center' : '']">
+            <p v-if="message.kind === DropMessageKind.System" class="text-xs font-bold text-ink/55">
               {{ message.text }}
             </p>
             <div v-else class="border-2 border-ink px-4 py-3" :class="message.mine ? 'bg-acid' : 'bg-paper'">
-              <p v-if="message.kind === 'text'" class="whitespace-pre-wrap break-words">
+              <p v-if="message.kind === DropMessageKind.Text" class="whitespace-pre-wrap break-words">
                 {{ message.text }}
               </p>
               <a v-else-if="message.url" :href="message.url" :download="message.name" class="focus-ring block font-black underline">{{ t('common.download') }} {{ message.name }}<small class="ml-2 font-normal">{{ formatBytes(message.size) }}</small></a>

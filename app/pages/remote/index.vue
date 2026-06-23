@@ -1,30 +1,9 @@
 <script setup lang="ts">
 import QRCode from 'qrcode'
-
-type Translate = (key: string) => string
-
-function createRemoteSlides(t: Translate) {
-  return [
-    {
-      accent: 'bg-coral',
-      body: t('remote.slides.one.body'),
-      kicker: t('remote.slides.one.kicker'),
-      title: t('remote.slides.one.title'),
-    },
-    {
-      accent: 'bg-sky',
-      body: t('remote.slides.two.body'),
-      kicker: t('remote.slides.two.kicker'),
-      title: t('remote.slides.two.title'),
-    },
-    {
-      accent: 'bg-violet',
-      body: t('remote.slides.three.body'),
-      kicker: t('remote.slides.three.kicker'),
-      title: t('remote.slides.three.title'),
-    },
-  ]
-}
+import { REMOTE_QR_CONFIG } from '~/configs/realtime.config'
+import { REMOTE_SLIDES } from '~/configs/remote.config'
+import { RealtimeMessageType, RealtimeRole, RealtimeStatus, RemoteCommand } from '~/types/realtime.type'
+import { createRoomCode } from '~/utils/realtime.util'
 
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
@@ -39,25 +18,24 @@ const pointerVisible = ref(false)
 const spotlight = ref(false)
 let pointerTimer: ReturnType<typeof setTimeout> | null = null
 
-const { latestMessage, peerConnected, status } = useRealtimeRoom(roomId, 'desktop')
+const { latestMessage, peerConnected, status } = useRealtimeRoom(roomId, RealtimeRole.Desktop)
 
-const slides = computed(() => createRemoteSlides(t))
+const slides = computed(() => REMOTE_SLIDES.map(slide => ({
+  accent: slide.accent,
+  body: t(slide.bodyKey),
+  kicker: t(slide.kickerKey),
+  title: t(slide.titleKey),
+})))
 
 const connectionLabel = computed(() => {
   if (peerConnected.value)
     return t('remote.connected')
-  if (status.value === 'connecting' || status.value === 'idle')
+  if (status.value === RealtimeStatus.Connecting || status.value === RealtimeStatus.Idle)
     return t('remote.connecting')
-  if (status.value === 'offline')
+  if (status.value === RealtimeStatus.Offline)
     return t('remote.offline')
   return t('remote.waiting')
 })
-
-function createRoomId() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const values = crypto.getRandomValues(new Uint8Array(6))
-  return Array.from(values, value => alphabet[value % alphabet.length]).join('')
-}
 
 function changeSlide(direction: number) {
   currentSlide.value = (currentSlide.value + direction + slides.value.length) % slides.value.length
@@ -65,24 +43,24 @@ function changeSlide(direction: number) {
 }
 
 function handleCommand(command: unknown) {
-  if (command === 'previous')
+  if (command === RemoteCommand.Previous)
     changeSlide(-1)
-  else if (command === 'next')
+  else if (command === RemoteCommand.Next)
     changeSlide(1)
-  else if (command === 'scroll-up')
+  else if (command === RemoteCommand.ScrollUp)
     slideBody.value?.scrollBy({ behavior: 'smooth', top: -160 })
-  else if (command === 'scroll-down')
+  else if (command === RemoteCommand.ScrollDown)
     slideBody.value?.scrollBy({ behavior: 'smooth', top: 160 })
-  else if (command === 'spotlight-toggle')
+  else if (command === RemoteCommand.SpotlightToggle)
     spotlight.value = !spotlight.value
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  const commandMap: Record<string, string> = {
-    ArrowDown: 'scroll-down',
-    ArrowLeft: 'previous',
-    ArrowRight: 'next',
-    ArrowUp: 'scroll-up',
+  const commandMap: Record<string, RemoteCommand> = {
+    ArrowDown: RemoteCommand.ScrollDown,
+    ArrowLeft: RemoteCommand.Previous,
+    ArrowRight: RemoteCommand.Next,
+    ArrowUp: RemoteCommand.ScrollUp,
   }
   const command = commandMap[event.key]
   if (command) {
@@ -101,10 +79,10 @@ watch(latestMessage, (message) => {
   if (!message)
     return
 
-  if (message.type === 'remote:command')
+  if (message.type === RealtimeMessageType.RemoteCommand)
     handleCommand(message.payload?.command)
 
-  if (message.type === 'remote:pointer') {
+  if (message.type === RealtimeMessageType.RemotePointer) {
     const x = Number(message.payload?.x)
     const y = Number(message.payload?.y)
     if (!Number.isFinite(x) || !Number.isFinite(y))
@@ -120,14 +98,10 @@ watch(latestMessage, (message) => {
 })
 
 onMounted(async () => {
-  roomId.value = createRoomId()
+  roomId.value = createRoomCode()
   const localePrefix = locale.value === 'en' ? '/en' : ''
   phoneUrl.value = `${window.location.origin}${localePrefix}/remote/control/${roomId.value}`
-  qrCode.value = await QRCode.toDataURL(phoneUrl.value, {
-    color: { dark: '#171714', light: '#ffffff' },
-    margin: 2,
-    width: 360,
-  })
+  qrCode.value = await QRCode.toDataURL(phoneUrl.value, REMOTE_QR_CONFIG)
   window.addEventListener('keydown', handleKeydown)
 })
 

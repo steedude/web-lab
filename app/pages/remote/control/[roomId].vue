@@ -1,26 +1,28 @@
 <script setup lang="ts">
+import { RealtimeMessageType, RealtimeRole, RealtimeStatus, RemoteCommand } from '~/types/realtime.type'
+
 const route = useRoute()
 const { t } = useI18n()
 const roomId = ref(String(route.params.roomId ?? '').toUpperCase())
 const touchpadActive = ref(false)
 const spotlightActive = ref(false)
-const { connect, peerConnected, send, status } = useRealtimeRoom(roomId, 'remote')
+const { connect, peerConnected, send, status } = useRealtimeRoom(roomId, RealtimeRole.Remote)
 
-const connected = computed(() => status.value === 'connected')
+const connected = computed(() => status.value === RealtimeStatus.Connected)
 
 function haptic() {
   if ('vibrate' in navigator)
     navigator.vibrate(18)
 }
 
-function command(value: string) {
+function command(value: RemoteCommand) {
   haptic()
-  send('remote:command', { command: value })
+  send(RealtimeMessageType.RemoteCommand, { command: value })
 }
 
 function toggleSpotlight() {
   spotlightActive.value = !spotlightActive.value
-  command('spotlight-toggle')
+  command(RemoteCommand.SpotlightToggle)
 }
 
 function updatePointer(event: PointerEvent) {
@@ -31,7 +33,7 @@ function updatePointer(event: PointerEvent) {
   const rect = target.getBoundingClientRect()
   const x = ((event.clientX - rect.left) / rect.width) * 100
   const y = ((event.clientY - rect.top) / rect.height) * 100
-  send('remote:pointer', { x, y })
+  send(RealtimeMessageType.RemotePointer, { x, y })
 }
 
 function startPointer(event: PointerEvent) {
@@ -94,11 +96,11 @@ useSeoMeta({
 
     <div class="mt-6 grid grid-cols-3 gap-3">
       <span />
-      <button class="remote-button bg-sky" type="button" :aria-label="t('remote.controller.scrollUp')" @click="command('scroll-up')">
+      <button class="remote-button bg-sky" type="button" :aria-label="t('remote.controller.scrollUp')" @click="command(RemoteCommand.ScrollUp)">
         {{ t('common.arrowUp') }}
       </button>
       <span />
-      <button class="remote-button bg-white" type="button" :aria-label="t('remote.controller.previous')" @click="command('previous')">
+      <button class="remote-button bg-white" type="button" :aria-label="t('remote.controller.previous')" @click="command(RemoteCommand.Previous)">
         {{ t('common.arrowLeft') }}
       </button>
       <button
@@ -109,11 +111,11 @@ useSeoMeta({
       >
         {{ t('remote.controller.spotlight') }}
       </button>
-      <button class="remote-button bg-white" type="button" :aria-label="t('remote.controller.next')" @click="command('next')">
+      <button class="remote-button bg-white" type="button" :aria-label="t('remote.controller.next')" @click="command(RemoteCommand.Next)">
         {{ t('common.arrowRight') }}
       </button>
       <span />
-      <button class="remote-button bg-sky" type="button" :aria-label="t('remote.controller.scrollDown')" @click="command('scroll-down')">
+      <button class="remote-button bg-sky" type="button" :aria-label="t('remote.controller.scrollDown')" @click="command(RemoteCommand.ScrollDown)">
         {{ t('common.arrowDown') }}
       </button>
       <span />

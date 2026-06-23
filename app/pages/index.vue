@@ -1,34 +1,18 @@
 <script setup lang="ts">
+import { HOME_FEATURES } from '~/configs/feature.config'
+
 type LocalePath = (path: string) => string
 type Translate = (key: string) => string
 
 function createHomeFeatures(t: Translate, localePath: LocalePath) {
-  return [
-    {
-      accent: 'bg-coral',
-      badge: t('features.remote.badge'),
-      description: t('features.remote.description'),
-      index: t('features.remote.index'),
-      title: t('features.remote.title'),
-      to: localePath('/remote'),
-    },
-    {
-      accent: 'bg-sky',
-      badge: t('features.drop.badge'),
-      description: t('features.drop.description'),
-      index: t('features.drop.index'),
-      title: t('features.drop.title'),
-      to: localePath('/drop'),
-    },
-    {
-      accent: 'bg-violet',
-      badge: t('features.links.badge'),
-      description: t('features.links.description'),
-      index: t('features.links.index'),
-      title: t('features.links.title'),
-      to: localePath('/links'),
-    },
-  ]
+  return HOME_FEATURES.map(feature => ({
+    accent: feature.accent,
+    badge: t(feature.badgeKey),
+    description: t(feature.descriptionKey),
+    index: t(feature.indexKey),
+    title: t(feature.titleKey),
+    to: localePath(feature.to),
+  }))
 }
 
 const { t } = useI18n()

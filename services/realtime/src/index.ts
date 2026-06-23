@@ -5,14 +5,38 @@ import { WebSocket, WebSocketServer } from 'ws'
 const host = process.env.HOST ?? '127.0.0.1'
 const port = Number(process.env.PORT ?? 3001)
 const roomPattern = /^[A-Z0-9]{6}$/
+const heartbeatIntervalMs = 30_000
+const maxPayloadBytes = 64 * 1024
+
+enum RealtimeRole {
+  Desktop = 'desktop',
+  DropGuest = 'drop-guest',
+  DropHost = 'drop-host',
+  Remote = 'remote',
+}
+
+enum RealtimeMessageType {
+  Connected = 'connected',
+  Error = 'error',
+  PeerJoined = 'peer:joined',
+  PeerLeft = 'peer:left',
+  RoomJoin = 'room:join',
+  RoomJoined = 'room:joined',
+}
+
+enum RealtimeErrorCode {
+  InvalidJoin = 'INVALID_JOIN',
+  InvalidMessage = 'INVALID_MESSAGE',
+  NotInRoom = 'NOT_IN_ROOM',
+}
+
+const validRoles = new Set(Object.values(RealtimeRole))
 
 interface Client extends WebSocket {
   isAlive: boolean
   roomId?: string
   role?: RealtimeRole
 }
-
-type RealtimeRole = 'desktop' | 'remote' | 'drop-host' | 'drop-guest'
 
 interface ClientMessage {
   type: string
@@ -41,7 +65,7 @@ const server = createServer((request, response) => {
 const wss = new WebSocketServer({
   server,
   path: '/ws',
-  maxPayload: 64 * 1024,
+  maxPayload: maxPayloadBytes,
 })
 
 function send(client: Client, message: unknown) {
@@ -59,7 +83,7 @@ function leaveRoom(client: Client) {
   if (room?.size === 0)
     rooms.delete(client.roomId)
   else
-    room?.forEach(peer => send(peer, { type: 'peer:left', role: client.role }))
+    room?.forEach(peer => send(peer, { type: RealtimeMessageType.PeerLeft, role: client.role }))
 
   client.roomId = undefined
   client.role = undefined
@@ -68,10 +92,8 @@ function leaveRoom(client: Client) {
 function joinRoom(client: Client, message: ClientMessage) {
   const roomId = message.roomId?.toUpperCase()
 
-  const validRoles: RealtimeRole[] = ['desktop', 'remote', 'drop-host', 'drop-guest']
-
-  if (!roomId || !roomPattern.test(roomId) || !message.role || !validRoles.includes(message.role)) {
-    send(client, { type: 'error', code: 'INVALID_JOIN' })
+  if (!roomId || !roomPattern.test(roomId) || !message.role || !validRoles.has(message.role)) {
+    send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.InvalidJoin })
     return
   }
 
@@ -83,16 +105,16 @@ function joinRoom(client: Client, message: ClientMessage) {
   client.roomId = roomId
   client.role = message.role
 
-  send(client, { type: 'room:joined', roomId, role: message.role })
+  send(client, { type: RealtimeMessageType.RoomJoined, roomId, role: message.role })
   existingPeers.forEach((peer) => {
-    send(peer, { type: 'peer:joined', role: message.role })
-    send(client, { type: 'peer:joined', role: peer.role })
+    send(peer, { type: RealtimeMessageType.PeerJoined, role: message.role })
+    send(client, { type: RealtimeMessageType.PeerJoined, role: peer.role })
   })
 }
 
 function relay(client: Client, message: ClientMessage) {
   if (!client.roomId) {
-    send(client, { type: 'error', code: 'NOT_IN_ROOM' })
+    send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.NotInRoom })
     return
   }
 
@@ -110,18 +132,18 @@ wss.on('connection', (client: Client) => {
     try {
       const message = JSON.parse(data.toString()) as ClientMessage
 
-      if (message.type === 'room:join')
+      if (message.type === RealtimeMessageType.RoomJoin)
         joinRoom(client, message)
       else
         relay(client, message)
     }
     catch {
-      send(client, { type: 'error', code: 'INVALID_MESSAGE' })
+      send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.InvalidMessage })
     }
   })
 
   client.on('close', () => leaveRoom(client))
-  send(client, { type: 'connected' })
+  send(client, { type: RealtimeMessageType.Connected })
 })
 
 const heartbeat = setInterval(() => {
@@ -136,7 +158,7 @@ const heartbeat = setInterval(() => {
     client.isAlive = false
     client.ping()
   })
-}, 30_000)
+}, heartbeatIntervalMs)
 
 wss.on('close', () => clearInterval(heartbeat))
 

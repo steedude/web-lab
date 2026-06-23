@@ -1,15 +1,10 @@
-type RealtimeRole = 'desktop' | 'remote' | 'drop-host' | 'drop-guest'
-
-interface RealtimeMessage {
-  type: string
-  payload?: Record<string, unknown>
-  role?: RealtimeRole
-  from?: RealtimeRole
-}
+import type { RealtimeMessage, RealtimeRole } from '~/types/realtime.type'
+import { REALTIME_RETRY_CONFIG } from '~/configs/realtime.config'
+import { RealtimeMessageType, RealtimeStatus } from '~/types/realtime.type'
 
 export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole>) {
   const config = useRuntimeConfig()
-  const status = ref<'idle' | 'connecting' | 'connected' | 'offline'>('idle')
+  const status = ref<RealtimeStatus>(RealtimeStatus.Idle)
   const peerConnected = ref(false)
   const latestMessage = shallowRef<RealtimeMessage | null>(null)
   let socket: WebSocket | null = null
@@ -22,7 +17,7 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
       return
 
     socket.send(JSON.stringify({
-      type: 'room:join',
+      type: RealtimeMessageType.RoomJoin,
       roomId: roomId.value,
       role: toValue(role),
     }))
@@ -33,23 +28,23 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
       return
 
     socket?.close()
-    status.value = 'connecting'
+    status.value = RealtimeStatus.Connecting
     socket = new WebSocket(config.public.realtimeUrl)
 
     socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data) as RealtimeMessage
 
-      if (message.type === 'connected') {
+      if (message.type === RealtimeMessageType.Connected) {
         joinRoom()
       }
-      else if (message.type === 'room:joined') {
-        status.value = 'connected'
+      else if (message.type === RealtimeMessageType.RoomJoined) {
+        status.value = RealtimeStatus.Connected
         retryCount = 0
       }
-      else if (message.type === 'peer:joined') {
+      else if (message.type === RealtimeMessageType.PeerJoined) {
         peerConnected.value = true
       }
-      else if (message.type === 'peer:left') {
+      else if (message.type === RealtimeMessageType.PeerLeft) {
         peerConnected.value = false
       }
 
@@ -60,9 +55,9 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
       if (stopped)
         return
 
-      status.value = 'offline'
+      status.value = RealtimeStatus.Offline
       peerConnected.value = false
-      const delay = Math.min(1000 * 2 ** retryCount, 10_000)
+      const delay = Math.min(REALTIME_RETRY_CONFIG.baseDelayMs * 2 ** retryCount, REALTIME_RETRY_CONFIG.maxDelayMs)
       retryCount += 1
       retryTimer = setTimeout(connect, delay)
     })
