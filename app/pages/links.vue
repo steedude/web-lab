@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { CreatedLink } from '~/types/link.type'
 import QRCode from 'qrcode'
-import { LINK_EXPIRY_OPTIONS, LINK_FORM_LIMITS, LINK_QR_CONFIG, LinkExpiryDay } from '~/configs/link.config'
+import { LINK_FORM_LIMITS, LINK_QR_CONFIG, LinkExpiryDay } from '~/configs/link.config'
+import { LinkMode } from '~/types/link.type'
 import { getApiErrorMessage } from '~/utils/error.util'
-import { getHostname, getPreviewImage, getWebsiteScreenshotUrl } from '~/utils/link.util'
+import { getPreviewImage, getWebsiteScreenshotUrl } from '~/utils/link.util'
 
-type LinkMode = 'url' | 'image'
-
-const mode = ref<LinkMode>('url')
+const mode = ref<LinkMode>(LinkMode.Url)
 const url = ref('')
 const password = ref('')
 const showPassword = ref(false)
@@ -25,7 +24,6 @@ const createdPreviewFailed = ref(false)
 const { t } = useI18n()
 const localePath = useLocalePath()
 
-const createdHostname = computed(() => created.value ? getHostname(created.value.target_url) : '')
 const createdIsImage = computed(() => Boolean(created.value?.target_url.includes('/image/')))
 const createdPreviewImage = computed(() => {
   if (!created.value)
@@ -35,14 +33,10 @@ const createdPreviewImage = computed(() => {
   return getPreviewImage(created.value.image_url, created.value.screenshot_url) || getWebsiteScreenshotUrl(created.value.target_url)
 })
 const shouldShowCreatedPreviewImage = computed(() => Boolean(createdPreviewImage.value && !createdPreviewFailed.value))
-const canCreate = computed(() => mode.value === 'url' ? Boolean(url.value.trim()) : Boolean(selectedImage.value))
+const canCreate = computed(() => mode.value === LinkMode.Url ? Boolean(url.value.trim()) : Boolean(selectedImage.value))
 
 function limitText(value: string, maxLength: number) {
   return value.trim().slice(0, maxLength)
-}
-
-function characterCount(value: string, maxLength: number) {
-  return `${value.length}/${maxLength}`
 }
 
 function isValidHttpUrlInput(value: string) {
@@ -121,7 +115,7 @@ async function createLink() {
   errorMessage.value = ''
   try {
     createdPreviewFailed.value = false
-    if (mode.value === 'url')
+    if (mode.value === LinkMode.Url)
       await createUrlLink()
     else
       await createImageLink()
@@ -156,7 +150,7 @@ async function copyShortUrl() {
 }
 
 watch(url, () => {
-  if (mode.value !== 'url')
+  if (mode.value !== LinkMode.Url)
     return
   created.value = null
   qrCode.value = ''
@@ -185,158 +179,42 @@ onBeforeUnmount(clearImagePreview)
           {{ t('links.description') }}
         </p>
 
-        <form class="mt-9 border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#ad9cff] sm:p-7" @submit.prevent="createLink">
-          <div class="grid grid-cols-2 gap-2 rounded-full border-2 border-ink bg-paper p-1">
-            <button type="button" class="rounded-full px-4 py-3 text-sm font-black" :class="mode === 'url' ? 'bg-ink text-white' : 'bg-transparent'" @click="setMode('url')">
-              {{ t('links.mode.url') }}
-            </button>
-            <button type="button" class="rounded-full px-4 py-3 text-sm font-black" :class="mode === 'image' ? 'bg-ink text-white' : 'bg-transparent'" @click="setMode('image')">
-              {{ t('links.mode.image') }}
-            </button>
-          </div>
-
-          <template v-if="mode === 'url'">
-            <label class="mt-5 block text-sm font-black" for="target-url">{{ t('links.fields.targetUrl') }}</label>
-            <input id="target-url" v-model="url" required type="text" :placeholder="t('links.placeholders.targetUrl')" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
-          </template>
-
-          <template v-else>
-            <label class="mt-5 block text-sm font-black" for="image-file">{{ t('links.fields.uploadImage') }}</label>
-            <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4" @change="onImageChange">
-            <p class="mt-2 text-xs font-bold text-ink/55">
-              {{ t('links.hints.imageTypes') }}
-            </p>
-            <div class="mt-5 grid gap-4 md:grid-cols-2">
-              <label class="min-w-0 text-sm font-black">
-                <span class="flex items-center justify-between gap-3">
-                  <span>{{ t('links.fields.imageTitle') }}</span>
-                  <span class="text-xs text-ink/45">{{ characterCount(imageTitle, LINK_FORM_LIMITS.title) }}</span>
-                </span>
-                <input v-model="imageTitle" type="text" :maxlength="LINK_FORM_LIMITS.title" :placeholder="t('links.placeholders.imageTitle')" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
-              </label>
-              <label class="min-w-0 text-sm font-black">
-                <span class="flex items-center justify-between gap-3">
-                  <span>{{ t('links.fields.imageDescription') }}</span>
-                  <span class="text-xs text-ink/45">{{ characterCount(imageDescription, LINK_FORM_LIMITS.description) }}</span>
-                </span>
-                <input v-model="imageDescription" type="text" :maxlength="LINK_FORM_LIMITS.description" :placeholder="t('links.placeholders.imageDescription')" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
-              </label>
-            </div>
-          </template>
-
-          <div class="mt-5 grid gap-4 md:grid-cols-2">
-            <label class="text-sm font-black">{{ t('links.fields.expiry') }}
-              <select v-model="expiresInDays" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-3 py-3">
-                <option v-for="option in LINK_EXPIRY_OPTIONS" :key="option.value" :value="option.value">
-                  {{ t(option.labelKey) }}
-                </option>
-              </select>
-            </label>
-            <label class="min-w-0 text-sm font-black">
-              <span class="flex items-center justify-between gap-3">
-                <span>{{ t('links.fields.password') }}</span>
-                <span class="text-xs text-ink/45">{{ characterCount(password, LINK_FORM_LIMITS.password) }}</span>
-              </span>
-              <span class="mt-2 flex border-2 border-ink bg-paper">
-                <input v-model="password" :type="showPassword ? 'text' : 'password'" :maxlength="LINK_FORM_LIMITS.password" autocomplete="new-password" :placeholder="t('links.placeholders.password')" class="focus-ring min-w-0 flex-1 bg-transparent px-4 py-3 outline-none">
-                <button type="button" class="border-l-2 border-ink px-3 text-xs font-black" :aria-label="showPassword ? t('common.hidePassword') : t('common.showPassword')" @click="showPassword = !showPassword">
-                  {{ showPassword ? t('common.hidePassword') : t('common.showPassword') }}
-                </button>
-              </span>
-            </label>
-          </div>
-
-          <p v-if="errorMessage" class="mt-4 border-l-4 border-coral bg-coral/15 px-4 py-3 text-sm font-bold">
-            {{ errorMessage }}
-          </p>
-
-          <button class="focus-ring mt-6 w-full border-2 border-ink bg-ink px-5 py-4 text-lg font-black text-white disabled:opacity-40" :disabled="creating || !canCreate">
-            {{ creating ? t('links.actions.creating') : mode === 'url' ? t('links.actions.createUrl') : t('links.actions.createImage') }}
-          </button>
-        </form>
+        <LinksLinkCreateForm
+          v-model:expires-in-days="expiresInDays"
+          v-model:image-description="imageDescription"
+          v-model:image-title="imageTitle"
+          v-model:mode="mode"
+          v-model:password="password"
+          v-model:url="url"
+          :can-create="canCreate"
+          :creating="creating"
+          :error-message="errorMessage"
+          :show-password="showPassword"
+          @image-change="onImageChange"
+          @mode-change="setMode"
+          @submit="createLink"
+          @toggle-password="showPassword = !showPassword"
+        />
       </section>
 
       <section class="lg:pt-12">
-        <div v-if="created" class="border-2 border-ink bg-acid p-5 shadow-[8px_8px_0_#171714] sm:p-7">
-          <p class="text-xs font-black tracking-[.2em]">
-            {{ t('links.result.eyebrow') }}
-          </p>
-          <a :href="created.shortUrl" target="_blank" class="focus-ring mt-3 block break-all text-3xl font-black underline sm:text-4xl">{{ created.shortUrl }}</a>
-          <div class="mt-5 overflow-hidden border-2 border-ink bg-white">
-            <div class="aspect-[1200/630] overflow-hidden border-b-2 border-ink bg-violet/20">
-              <img v-if="shouldShowCreatedPreviewImage" :src="createdPreviewImage" :alt="created.title || created.target_url" class="h-full w-full" :class="createdIsImage ? 'object-contain p-3' : 'object-cover object-top'" @error="createdPreviewFailed = true">
-              <div v-else class="grid h-full place-items-center bg-gradient-to-br from-acid via-paper to-sky/30 p-8 text-center">
-                <div>
-                  <div class="text-6xl font-black">
-                    {{ t('common.previewIcon') }}
-                  </div>
-                  <p class="mt-4 text-xs font-black tracking-[.2em] text-ink/50">
-                    {{ t('links.result.defaultPreviewEyebrow') }}
-                  </p>
-                  <p class="mt-2 line-clamp-2 break-all text-2xl font-black">
-                    {{ createdHostname || created.target_url }}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div class="p-4">
-              <div class="flex items-center gap-2 text-xs font-bold text-ink/55">
-                <img v-if="created.favicon_url" :src="created.favicon_url" alt="" class="size-5" @error="($event.target as HTMLImageElement).style.display = 'none'">
-                <span>{{ createdHostname }}</span>
-              </div>
-              <h2 class="mt-2 line-clamp-2 break-all text-xl font-black [overflow-wrap:anywhere]">
-                {{ created.title || created.target_url }}
-              </h2>
-              <p v-if="created.description" class="mt-2 line-clamp-3 break-all text-sm leading-6 text-ink/70 [overflow-wrap:anywhere]">
-                {{ created.description }}
-              </p>
-            </div>
-          </div>
-          <div class="mt-6 grid items-start gap-5 sm:grid-cols-[170px_1fr]">
-            <img :src="qrCode" :alt="t('links.result.qrAlt')" class="w-full border-2 border-ink bg-white p-2">
-            <div class="space-y-4">
-              <p v-if="created.password_required" class="inline-flex border border-ink bg-white px-2 py-1 text-xs font-black">
-                {{ t('links.result.passwordProtected') }}
-              </p>
-              <div>
-                <button class="focus-ring border-2 border-ink bg-white px-5 py-3 font-black" @click="copyShortUrl">
-                  {{ copied ? t('links.actions.copied') : t('links.actions.copyShortUrl') }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="mode === 'image' && selectedImagePreview" class="overflow-hidden border-2 border-ink bg-white shadow-[8px_8px_0_#171714]">
-          <div class="aspect-[1200/630] overflow-hidden border-b-2 border-ink bg-violet/20">
-            <img :src="selectedImagePreview" :alt="imageTitle || t('links.preview.uploadAlt')" class="h-full w-full object-contain p-3">
-          </div>
-          <div class="p-5 sm:p-7">
-            <p class="text-xs font-black tracking-[.2em]">
-              {{ t('links.preview.imageEyebrow') }}
-            </p>
-            <h2 class="mt-3 line-clamp-2 break-all text-3xl font-black tracking-tight [overflow-wrap:anywhere]">
-              {{ imageTitle || t('image.fallbackTitle') }}
-            </h2>
-            <p class="mt-3 line-clamp-3 break-all leading-7 text-ink/70 [overflow-wrap:anywhere]">
-              {{ imageDescription || t('links.preview.imageDescription') }}
-            </p>
-          </div>
-        </div>
-
-        <div v-else class="grid min-h-[470px] place-items-center border-2 border-dashed border-ink/40 bg-white/45 p-8 text-center">
-          <div>
-            <div class="text-6xl">
-              {{ t('common.previewIcon') }}
-            </div>
-            <h2 class="mt-5 text-2xl font-black">
-              {{ t('links.empty.title') }}
-            </h2>
-            <p class="mt-2 text-ink/60">
-              {{ t('links.empty.description') }}
-            </p>
-          </div>
-        </div>
+        <LinksLinkResultCard
+          v-if="created"
+          :copied="copied"
+          :created="created"
+          :image-url="createdPreviewImage"
+          :qr-code="qrCode"
+          :show-preview-image="shouldShowCreatedPreviewImage"
+          @copy="copyShortUrl"
+          @image-error="createdPreviewFailed = true"
+        />
+        <LinksLinkImageDraftPreview
+          v-else-if="mode === LinkMode.Image && selectedImagePreview"
+          :description="imageDescription"
+          :image-url="selectedImagePreview"
+          :title="imageTitle"
+        />
+        <LinksLinkEmptyPreview v-else />
       </section>
     </div>
   </main>

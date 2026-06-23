@@ -1,3 +1,8 @@
+export enum LinkMode {
+  Image = 'image',
+  Url = 'url',
+}
+
 export interface CreatedLink {
   description: string | null
   expires_at: string | null

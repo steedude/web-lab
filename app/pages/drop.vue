@@ -4,7 +4,6 @@ import QRCode from 'qrcode'
 import { DROP_FILE_TRANSFER_CONFIG, DROP_QR_CONFIG, DROP_RTC_CONFIG } from '~/configs/realtime.config'
 import { DropMessageKind } from '~/types/drop.type'
 import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
-import { formatBytes } from '~/utils/file.util'
 import { createRoomCode, isRoomCode, normalizeRoomCode } from '~/utils/realtime.util'
 
 const route = useRoute()
@@ -20,7 +19,6 @@ const transferProgress = ref<number | null>(null)
 const messages = ref<DropChatItem[]>([])
 const connectionState = ref<RTCPeerConnectionState>('new')
 const channelState = ref<RTCDataChannelState>('closed')
-const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 const { t } = useI18n()
 const localePath = useLocalePath()
 
@@ -225,114 +223,11 @@ onBeforeUnmount(() => {
       {{ t('common.arrowLeft') }} {{ t('common.backHome') }}
     </NuxtLink>
 
-    <section v-if="!started" class="mt-10 grid gap-8 lg:grid-cols-[1.2fr_.8fr]">
-      <div>
-        <p class="text-sm font-black tracking-[.24em]">
-          {{ t('drop.eyebrow') }}
-        </p>
-        <h1 class="mt-5 max-w-4xl text-5xl leading-[.95] font-black tracking-[-.055em] sm:text-7xl">
-          {{ t('drop.title') }}
-        </h1>
-        <p class="mt-6 max-w-2xl text-lg leading-8">
-          {{ t('drop.description') }}
-        </p>
-      </div>
-      <div class="border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#171714] sm:p-7">
-        <button class="focus-ring w-full border-2 border-ink bg-sky px-5 py-5 text-left text-xl font-black transition hover:-translate-y-1" @click="start(RealtimeRole.DropHost)">
-          {{ t('drop.actions.createRoom') }} <span class="float-right">{{ t('common.arrowRight') }}</span>
-        </button>
-        <div class="my-5 flex items-center gap-3 text-xs font-black tracking-[.2em]">
-          <span class="h-px flex-1 bg-ink/30" />{{ t('drop.joinDivider') }}<span class="h-px flex-1 bg-ink/30" />
-        </div>
-        <form class="flex gap-2" @submit.prevent="start(RealtimeRole.DropGuest, roomInput)">
-          <input v-model="roomInput" maxlength="6" placeholder="ABC123" class="focus-ring min-w-0 flex-1 border-2 border-ink bg-paper px-4 py-4 font-mono text-xl font-black uppercase" @input="roomInput = normalizeRoomCode(roomInput)">
-          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-40" :disabled="!isRoomCode(roomInput)">
-            {{ t('drop.actions.join') }}
-          </button>
-        </form>
-      </div>
-    </section>
+    <DropDropStartPanel v-if="!started" v-model:room-input="roomInput" @start="start" />
 
     <section v-else class="mt-10 grid min-h-[670px] gap-6 lg:grid-cols-[360px_1fr]">
-      <aside class="border-2 border-ink bg-sky p-5 shadow-[6px_6px_0_#171714]">
-        <p class="text-xs font-black tracking-[.2em]">
-          {{ t('drop.room') }}
-        </p>
-        <div class="mt-2 font-mono text-4xl font-black tracking-[.12em]">
-          {{ roomId }}
-        </div>
-        <div class="mt-4 inline-flex items-center gap-2 border border-ink bg-white px-3 py-2 text-sm font-bold">
-          <span class="size-2 rounded-full" :class="isReady ? 'bg-green-500' : 'animate-pulse bg-coral'" />
-          {{ isReady ? t('drop.status.ready') : t('drop.status.waiting') }}
-        </div>
-
-        <template v-if="role === RealtimeRole.DropHost">
-          <div class="mt-6 border-2 border-ink bg-white p-3">
-            <img v-if="qrCode" :src="qrCode" :alt="t('drop.qrAlt')" class="w-full">
-          </div>
-          <button class="focus-ring mt-4 w-full border-2 border-ink bg-white px-4 py-3 font-black" @click="copyJoinUrl">
-            {{ copied ? t('drop.actions.copied') : t('drop.actions.copyInvite') }}
-          </button>
-        </template>
-        <p class="mt-5 text-sm leading-6">
-          {{ t('drop.privacyHint') }}
-        </p>
-      </aside>
-
-      <div class="flex min-h-[620px] flex-col border-2 border-ink bg-white">
-        <header class="flex items-center justify-between border-b-2 border-ink px-5 py-4">
-          <div>
-            <p class="text-xs font-black tracking-[.18em]">
-              {{ t('drop.chatEyebrow') }}
-            </p><h1 class="text-2xl font-black">
-              {{ t('drop.chatTitle') }}
-            </h1>
-          </div>
-          <span class="hidden text-sm font-bold sm:block">{{ t('drop.dataChannel') }}</span>
-        </header>
-        <div class="flex-1 space-y-3 overflow-y-auto p-5">
-          <div v-if="!messages.length" class="grid h-full min-h-72 place-items-center text-center text-ink/55">
-            <div>
-              <div class="text-5xl">
-                {{ t('common.openExternal') }}
-              </div><p class="mt-3 font-bold">
-                {{ t('drop.empty') }}
-              </p>
-            </div>
-          </div>
-          <div v-for="message in messages" :key="message.id" class="max-w-[85%]" :class="[message.mine ? 'ml-auto' : '', message.kind === DropMessageKind.System ? 'mx-auto text-center' : '']">
-            <p v-if="message.kind === DropMessageKind.System" class="text-xs font-bold text-ink/55">
-              {{ message.text }}
-            </p>
-            <div v-else class="border-2 border-ink px-4 py-3" :class="message.mine ? 'bg-acid' : 'bg-paper'">
-              <p v-if="message.kind === DropMessageKind.Text" class="whitespace-pre-wrap break-words">
-                {{ message.text }}
-              </p>
-              <a v-else-if="message.url" :href="message.url" :download="message.name" class="focus-ring block font-black underline">{{ t('common.download') }} {{ message.name }}<small class="ml-2 font-normal">{{ formatBytes(message.size) }}</small></a>
-              <p v-else class="font-black">
-                {{ t('common.upload') }} {{ message.name }} <small class="font-normal">{{ formatBytes(message.size) }}</small>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div v-if="transferProgress !== null" class="border-t-2 border-ink px-5 py-3">
-          <div class="mb-1 flex justify-between text-xs font-black">
-            <span>{{ t('drop.transfering') }}</span><span>{{ transferProgress }}{{ t('common.percent') }}</span>
-          </div><div class="h-2 bg-ink/15">
-            <div class="h-full bg-violet transition-all" :style="{ width: `${transferProgress}%` }" />
-          </div>
-        </div>
-        <form class="flex gap-2 border-t-2 border-ink p-3 sm:p-4" @submit.prevent="sendText">
-          <input ref="fileInput" type="file" class="hidden" @change="onFileChange">
-          <button type="button" class="focus-ring border-2 border-ink px-4 text-xl font-black disabled:opacity-30" :disabled="!isReady" :aria-label="t('drop.actions.chooseFile')" @click="fileInput?.click()">
-            {{ t('common.plus') }}
-          </button>
-          <input v-model="textInput" class="focus-ring min-w-0 flex-1 border-2 border-ink bg-paper px-4 py-3" :placeholder="t('drop.messagePlaceholder')" :disabled="!isReady">
-          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-30" :disabled="!isReady || !textInput.trim()">
-            {{ t('drop.actions.send') }}
-          </button>
-        </form>
-      </div>
+      <DropDropRoomSidebar :copied="copied" :is-ready="isReady" :qr-code="qrCode" :role="role" :room-id="roomId" @copy-invite="copyJoinUrl" />
+      <DropDropChatPanel v-model:text-input="textInput" :is-ready="isReady" :messages="messages" :transfer-progress="transferProgress" @choose-file="onFileChange" @send-text="sendText" />
     </section>
   </main>
 </template>
