@@ -11,6 +11,12 @@ pnpm dev
 
 The development server runs at `http://localhost:3000`.
 
+## Supabase setup
+
+Open the Supabase SQL Editor, paste the full content of `supabase/setup.sql`, and run it once.
+
+The setup SQL creates the `short_links` table, row-level security policy, and RPC functions used by short links, previews, and password-protected redirects.
+
 ## Commands
 
 ```bash
