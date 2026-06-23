@@ -82,7 +82,7 @@ async function loadPreview() {
 }
 
 async function createUrlLink() {
-  if (!preview.value)
+  if (!preview.value || preview.value.url !== url.value.trim())
     await loadPreview()
   if (!preview.value)
     return
@@ -158,6 +158,15 @@ async function copyShortUrl() {
   copied.value = true
   setTimeout(() => copied.value = false, 1500)
 }
+
+watch(url, (value) => {
+  if (mode.value !== 'url' || !preview.value || preview.value.url === value.trim())
+    return
+  preview.value = null
+  created.value = null
+  qrCode.value = ''
+  copied.value = false
+})
 
 onBeforeUnmount(clearImagePreview)
 </script>
