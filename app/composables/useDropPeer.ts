@@ -17,7 +17,11 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     bytesSent: 0,
     channelState: 'closed',
     connectionState: 'new',
+    controlBufferedAmount: 0,
+    controlChannelState: 'missing',
     currentRoundTripTime: null,
+    fileBufferedAmount: 0,
+    fileChannelState: 'missing',
     localCandidateType: '',
     packetsLost: 0,
     packetsReceived: 0,
@@ -47,7 +51,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     messages.value.push({ id: crypto.randomUUID(), kind: DropMessageKind.Text, mine, text })
   }
 
-  function addFile(file: Pick<DropChatItem, 'id' | 'name' | 'progress' | 'receivedBytes' | 'size' | 'speedBytesPerSecond' | 'status' | 'url'>, mine: boolean) {
+  function addFile(file: Pick<DropChatItem, 'averageBytesPerSecond' | 'elapsedMs' | 'id' | 'lastProgressGapMs' | 'name' | 'peakBytesPerSecond' | 'progress' | 'receivedBytes' | 'size' | 'speedBytesPerSecond' | 'stalledCount' | 'startedAt' | 'status' | 'url'>, mine: boolean) {
     messages.value.push({ kind: DropMessageKind.File, mine, ...file })
   }
 
@@ -66,8 +70,13 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     if (!incomingFile)
       return
 
+    const completedAt = Date.now()
+    const elapsedMs = completedAt - incomingFile.startedAt
     const blob = new Blob(incomingFile.chunks, { type: incomingFile.type })
     updateFileMessage(incomingFile.id, {
+      averageBytesPerSecond: incomingFile.size / Math.max(elapsedMs / 1000, 0.001),
+      completedAt,
+      elapsedMs,
       progress: 100,
       receivedBytes: incomingFile.size,
       speedBytesPerSecond: 0,
@@ -83,16 +92,27 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     if (!force && now - lastProgressAt < DROP_FILE_TRANSFER_CONFIG.progressIntervalMs)
       return
 
-    const elapsedSeconds = Math.max((now - file.lastProgressAt) / 1000, 0.001)
+    const progressGapMs = now - file.lastProgressAt
+    const elapsedSeconds = Math.max(progressGapMs / 1000, 0.001)
     const bytesDelta = file.received - file.lastReceived
     file.speedBytesPerSecond = bytesDelta / elapsedSeconds
+    file.peakBytesPerSecond = Math.max(file.peakBytesPerSecond, file.speedBytesPerSecond)
+    file.averageBytesPerSecond = file.received / Math.max((now - file.startedAt) / 1000, 0.001)
+    file.lastProgressGapMs = progressGapMs
+    if (progressGapMs >= DROP_FILE_TRANSFER_CONFIG.stallThresholdMs && bytesDelta > 0)
+      file.stalledCount += 1
     file.lastProgressAt = now
     file.lastReceived = file.received
     lastProgressAt = now
     updateFileMessage(file.id, {
+      averageBytesPerSecond: file.averageBytesPerSecond,
+      elapsedMs: now - file.startedAt,
+      lastProgressGapMs: file.lastProgressGapMs,
+      peakBytesPerSecond: file.peakBytesPerSecond,
       progress: Math.min(100, Math.round((file.received / file.size) * 100)),
       receivedBytes: file.received,
       speedBytesPerSecond: file.speedBytesPerSecond,
+      stalledCount: file.stalledCount,
     })
     sendControlMessage({ id: file.id, kind: DropMessageKind.FileProgress, received: file.received, size: file.size })
   }
@@ -103,15 +123,20 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     }
     else if (data.kind === DropMessageKind.FileStart && data.id && data.name && data.size !== undefined) {
       const now = Date.now()
-      incomingFile = { chunks: [], id: data.id, lastProgressAt: now, lastReceived: 0, name: data.name, received: 0, size: data.size, speedBytesPerSecond: 0, startedAt: now, type: data.type || 'application/octet-stream' }
+      incomingFile = { averageBytesPerSecond: 0, chunks: [], id: data.id, lastProgressAt: now, lastProgressGapMs: 0, lastReceived: 0, name: data.name, peakBytesPerSecond: 0, received: 0, size: data.size, speedBytesPerSecond: 0, stalledCount: 0, startedAt: now, type: data.type || 'application/octet-stream' }
       lastProgressAt = 0
       addFile({
+        averageBytesPerSecond: 0,
         id: data.id,
+        lastProgressGapMs: 0,
         name: data.name,
+        peakBytesPerSecond: 0,
         progress: 0,
         receivedBytes: 0,
         size: data.size,
         speedBytesPerSecond: 0,
+        stalledCount: 0,
+        startedAt: now,
         status: DropFileTransferStatus.Receiving,
       }, false)
     }
@@ -120,12 +145,26 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       const progressSnapshot = outgoingProgressMap.get(data.id)
       const elapsedSeconds = progressSnapshot ? Math.max((now - progressSnapshot.lastProgressAt) / 1000, 0.001) : 0
       const speedBytesPerSecond = progressSnapshot ? Math.max(0, (data.received - progressSnapshot.lastReceived) / elapsedSeconds) : 0
-      outgoingProgressMap.set(data.id, { lastProgressAt: now, lastReceived: data.received })
+      const startedAt = progressSnapshot?.startedAt ?? now
+      const lastProgressGapMs = progressSnapshot ? now - progressSnapshot.lastProgressAt : 0
+      const stalledCount = progressSnapshot
+        ? progressSnapshot.stalledCount + (lastProgressGapMs >= DROP_FILE_TRANSFER_CONFIG.stallThresholdMs && data.received > progressSnapshot.lastReceived ? 1 : 0)
+        : 0
+      const averageBytesPerSecond = data.received / Math.max((now - startedAt) / 1000, 0.001)
+      const peakBytesPerSecond = Math.max(progressSnapshot?.peakBytesPerSecond ?? 0, speedBytesPerSecond)
+
+      outgoingProgressMap.set(data.id, { averageBytesPerSecond, lastProgressAt: now, lastProgressGapMs, lastReceived: data.received, peakBytesPerSecond, stalledCount, startedAt })
 
       updateFileMessage(data.id, {
+        averageBytesPerSecond,
+        completedAt: data.received >= data.size ? now : undefined,
+        elapsedMs: now - startedAt,
+        lastProgressGapMs,
+        peakBytesPerSecond,
         progress: Math.min(100, Math.round((data.received / data.size) * 100)),
         receivedBytes: data.received,
         speedBytesPerSecond: data.received >= data.size ? 0 : speedBytesPerSecond,
+        stalledCount,
         status: data.received >= data.size ? DropFileTransferStatus.Complete : DropFileTransferStatus.Sending,
       })
 
@@ -218,7 +257,11 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       bytesSent,
       channelState: channelState.value,
       connectionState: connectionState.value,
+      controlBufferedAmount: controlChannel?.bufferedAmount ?? 0,
+      controlChannelState: controlChannel?.readyState ?? 'missing',
       currentRoundTripTime: selectedPair?.currentRoundTripTime ?? null,
+      fileBufferedAmount: fileChannel?.bufferedAmount ?? 0,
+      fileChannelState: fileChannel?.readyState ?? 'missing',
       localCandidateType: localCandidate?.candidateType || '',
       packetsLost: Number(selectedPair?.packetsLost ?? 0),
       packetsReceived: Number(selectedPair?.packetsReceived ?? 0),
@@ -347,13 +390,28 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       return
 
     const id = crypto.randomUUID()
+    const startedAt = Date.now()
+    outgoingProgressMap.set(id, {
+      averageBytesPerSecond: 0,
+      lastProgressAt: startedAt,
+      lastProgressGapMs: 0,
+      lastReceived: 0,
+      peakBytesPerSecond: 0,
+      stalledCount: 0,
+      startedAt,
+    })
     addFile({
+      averageBytesPerSecond: 0,
       id,
+      lastProgressGapMs: 0,
       name: file.name,
+      peakBytesPerSecond: 0,
       progress: 0,
       receivedBytes: 0,
       size: file.size,
       speedBytesPerSecond: 0,
+      stalledCount: 0,
+      startedAt,
       status: DropFileTransferStatus.Sending,
     }, true)
     controlChannel.send(JSON.stringify({ id, kind: DropMessageKind.FileStart, name: file.name, size: file.size, type: file.type }))

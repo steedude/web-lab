@@ -37,12 +37,24 @@ function formatBitrate(bytesPerSecond: number) {
   return `${formatBytes(bytesPerSecond)}/s`
 }
 
+function formatChannelDebug(state: string, bufferedAmount: number) {
+  return `${state} / ${formatBytes(bufferedAmount)}`
+}
+
 function formatNullableBitrate(bitsPerSecond: number | null) {
   return bitsPerSecond ? formatBitrate(bitsPerSecond / 8) : t('drop.debug.empty')
 }
 
 function formatRtt(seconds: number | null) {
   return seconds === null ? t('drop.debug.empty') : `${Math.round(seconds * 1000)} ms`
+}
+
+function formatDuration(milliseconds?: number) {
+  if (!milliseconds)
+    return t('drop.debug.empty')
+  if (milliseconds < 1000)
+    return `${Math.round(milliseconds)} ms`
+  return `${(milliseconds / 1000).toFixed(1)} s`
 }
 
 function formatCandidatePair(stats: DropDebugStats) {
@@ -87,6 +99,18 @@ function formatPacketStats(stats: DropDebugStats) {
           <dt>{{ t('drop.debug.channel') }}</dt>
           <dd class="font-mono text-ink">
             {{ debugStats.channelState }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.controlChannel') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatChannelDebug(debugStats.controlChannelState, debugStats.controlBufferedAmount) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.fileChannel') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatChannelDebug(debugStats.fileChannelState, debugStats.fileBufferedAmount) }}
           </dd>
         </div>
         <div class="flex justify-between gap-4">
@@ -190,6 +214,38 @@ function formatPacketStats(stats: DropDebugStats) {
             <div v-if="message.status !== DropFileTransferStatus.Complete" class="mt-3 h-2 border border-ink bg-white/60">
               <div class="h-full bg-violet transition-all" :style="{ width: `${fileProgress(message)}%` }" />
             </div>
+            <dl v-if="message.size" class="mt-3 grid gap-1 border border-ink/20 bg-white/50 p-2 text-[11px] font-bold text-ink/60 sm:grid-cols-2">
+              <div class="flex justify-between gap-2">
+                <dt>{{ t('drop.debug.elapsed') }}</dt>
+                <dd class="font-mono text-ink">
+                  {{ formatDuration(message.elapsedMs) }}
+                </dd>
+              </div>
+              <div class="flex justify-between gap-2">
+                <dt>{{ t('drop.debug.averageSpeed') }}</dt>
+                <dd class="font-mono text-ink">
+                  {{ formatBitrate(message.averageBytesPerSecond || 0) }}
+                </dd>
+              </div>
+              <div class="flex justify-between gap-2">
+                <dt>{{ t('drop.debug.peakSpeed') }}</dt>
+                <dd class="font-mono text-ink">
+                  {{ formatBitrate(message.peakBytesPerSecond || 0) }}
+                </dd>
+              </div>
+              <div class="flex justify-between gap-2">
+                <dt>{{ t('drop.debug.lastGap') }}</dt>
+                <dd class="font-mono text-ink">
+                  {{ formatDuration(message.lastProgressGapMs) }}
+                </dd>
+              </div>
+              <div class="flex justify-between gap-2">
+                <dt>{{ t('drop.debug.stalls') }}</dt>
+                <dd class="font-mono text-ink">
+                  {{ message.stalledCount || 0 }}
+                </dd>
+              </div>
+            </dl>
             <a v-if="message.url" :href="message.url" :download="message.name" class="focus-ring mt-3 inline-flex border-2 border-ink bg-white px-3 py-2 text-xs font-black">
               {{ t('common.download') }}
             </a>

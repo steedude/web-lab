@@ -37,6 +37,7 @@ export const DROP_FILE_TRANSFER_CONFIG = {
   // Some mobile browsers do not fire `bufferedamountlow` consistently, so we also poll.
   bufferPollIntervalMs: 40,
   progressIntervalMs: 200,
+  stallThresholdMs: 1000,
 } as const
 
 export const DROP_CHANNEL_CONFIG = {
