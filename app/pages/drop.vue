@@ -33,6 +33,7 @@ const textInput = ref('')
 const transferProgress = ref<number | null>(null)
 const messages = ref<ChatItem[]>([])
 const connectionState = ref<RTCPeerConnectionState>('new')
+const channelState = ref<RTCDataChannelState>('closed')
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 const { t } = useI18n()
 
@@ -41,7 +42,7 @@ let peer: RTCPeerConnection | null = null
 let channel: RTCDataChannel | null = null
 let incomingFile: IncomingFile | null = null
 
-const isReady = computed(() => channel?.readyState === 'open' && connectionState.value === 'connected')
+const isReady = computed(() => channelState.value === 'open' && connectionState.value === 'connected')
 const joinUrl = computed(() => import.meta.client && roomId.value
   ? `${window.location.origin}/drop?room=${roomId.value}`
   : '')
@@ -57,8 +58,19 @@ function addSystem(text: string) {
 
 function setupChannel(nextChannel: RTCDataChannel) {
   channel = nextChannel
+  channelState.value = nextChannel.readyState
   channel.binaryType = 'arraybuffer'
   channel.bufferedAmountLowThreshold = 256 * 1024
+
+  channel.addEventListener('open', () => {
+    channelState.value = nextChannel.readyState
+  })
+  channel.addEventListener('close', () => {
+    channelState.value = nextChannel.readyState
+  })
+  channel.addEventListener('error', () => {
+    channelState.value = nextChannel.readyState
+  })
 
   channel.addEventListener('open', () => addSystem('裝置已建立點對點連線'))
   channel.addEventListener('close', () => addSystem('另一台裝置已離線'))
@@ -100,6 +112,8 @@ function setupChannel(nextChannel: RTCDataChannel) {
 
 function createPeer() {
   peer?.close()
+  channel = null
+  channelState.value = 'closed'
   peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }] })
   connectionState.value = peer.connectionState
   peer.addEventListener('connectionstatechange', () => {
