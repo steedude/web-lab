@@ -29,18 +29,18 @@ defineExpose({ scrollBy, scrollToTop })
 </script>
 
 <template>
-  <div class="relative min-h-[31rem] overflow-hidden rounded-[2.25rem] border-2 border-ink bg-ink text-white shadow-[9px_9px_0_#ff735c]">
+  <div class="relative min-h-[31rem] min-w-0 overflow-hidden rounded-[2.25rem] border-2 border-ink bg-ink text-white shadow-[9px_9px_0_#ff735c]">
     <Transition name="slide" mode="out-in">
       <article :key="currentSlide" class="absolute inset-0 flex flex-col p-7 sm:p-12">
         <div :class="slides[currentSlide]?.accent" class="absolute -top-20 -right-16 size-64 rounded-full border-2 border-white/50 opacity-90" />
-        <p class="relative font-mono text-xs font-black tracking-[0.2em] text-white/55">
+        <p class="relative break-words font-mono text-xs font-black tracking-[0.16em] text-white/55 sm:tracking-[0.2em]">
           {{ slides[currentSlide]?.kicker }}
         </p>
         <div ref="slideBody" class="relative mt-auto max-h-80 overflow-y-auto pt-24 pr-2">
-          <h2 class="max-w-3xl text-5xl leading-[0.94] font-black tracking-[-0.06em] sm:text-7xl">
+          <h2 class="max-w-3xl text-[clamp(3rem,13vw,4.5rem)] leading-[0.94] font-black tracking-[-0.06em] break-words sm:text-7xl">
             {{ slides[currentSlide]?.title }}
           </h2>
-          <p class="mt-7 max-w-2xl text-base leading-8 font-semibold text-white/65 sm:text-lg">
+          <p class="mt-7 max-w-2xl break-words text-base leading-8 font-semibold text-white/65 sm:text-lg">
             {{ slides[currentSlide]?.body }}
           </p>
           <p class="mt-6 text-sm leading-7 text-white/45">

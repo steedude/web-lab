@@ -18,10 +18,12 @@
 }
 
 html {
+  overflow-x: clip;
   scroll-behavior: smooth;
 }
 
 body {
+  overflow-x: clip;
   min-width: 320px;
   min-height: 100vh;
   margin: 0;

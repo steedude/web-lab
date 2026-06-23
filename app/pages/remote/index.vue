@@ -123,15 +123,15 @@ useSeoMeta({
       {{ t('common.arrowLeft') }} {{ t('common.backHome') }}
     </NuxtLink>
 
-    <section class="mt-8 grid items-end gap-8 lg:grid-cols-[1fr_21rem]">
-      <div>
-        <p class="font-mono text-xs font-black tracking-[0.2em] text-black/50">
+    <section class="mt-8 grid min-w-0 items-end gap-8 lg:grid-cols-[1fr_21rem]">
+      <div class="min-w-0">
+        <p class="break-words font-mono text-xs font-black tracking-[0.16em] text-black/50 sm:tracking-[0.2em]">
           {{ t('remote.eyebrow') }}
         </p>
-        <h1 class="mt-4 max-w-4xl text-5xl leading-[0.94] font-black tracking-[-0.065em] sm:text-7xl">
+        <h1 class="mt-4 max-w-4xl text-[clamp(3rem,13vw,4.5rem)] leading-[0.94] font-black tracking-[-0.065em] break-words sm:text-7xl">
           {{ t('remote.title') }}
         </h1>
-        <p class="mt-6 max-w-2xl text-base leading-7 font-semibold text-black/60">
+        <p class="mt-6 max-w-2xl break-words text-base leading-7 font-semibold text-black/60">
           {{ t('remote.description') }}
         </p>
       </div>
@@ -148,7 +148,7 @@ useSeoMeta({
       />
     </section>
 
-    <section class="mt-12 grid gap-7 lg:grid-cols-[18rem_minmax(0,1fr)]">
+    <section class="mt-12 grid min-w-0 gap-7 lg:grid-cols-[18rem_minmax(0,1fr)]">
       <RemotePairingCard
         class="hidden lg:block"
         :connection-label="connectionLabel"
