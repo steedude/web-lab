@@ -24,8 +24,7 @@
     "qrcode": "^1.5.4",
     "tailwindcss": "^4.3.1",
     "tslib": "^2.8.1",
-    "vue": "^3.5.35",
-    "vue-router": "^5.1.0"
+    "vue": "^3.5.35"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
