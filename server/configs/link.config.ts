@@ -17,6 +17,7 @@ export const LINK_CONFIG = {
   aliasPattern: /^[a-z0-9_-]{3,24}$/,
   htmlPreviewMaxBytes: 1_000_000,
   maxDescriptionLength: 280,
+  maxImageUploadBytes: 5 * 1024 * 1024,
   maxPasswordLength: 128,
   maxRedirects: 4,
   maxSlugAttempts: 4,
@@ -34,6 +35,9 @@ export const LINK_CONFIG = {
   },
   slugBytes: 5,
   slugLength: 7,
+  storage: {
+    imageBucket: 'link-images',
+  },
 } as const
 
 export const LINK_PREVIEW_USER_AGENT = 'Mozilla/5.0 (compatible; WebLabPreview/1.0)'

@@ -164,3 +164,49 @@ revoke all on function public.resolve_short_link(text, text) from public;
 grant execute on function public.resolve_short_link(text, text) to anon, authenticated;
 
 grant insert on table public.short_links to anon, authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'link-images',
+  'link-images',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'anyone can upload link images'
+  ) then
+    create policy "anyone can upload link images"
+      on storage.objects
+      for insert
+      to anon, authenticated
+      with check (bucket_id = 'link-images');
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'anyone can view link images'
+  ) then
+    create policy "anyone can view link images"
+      on storage.objects
+      for select
+      to anon, authenticated
+      using (bucket_id = 'link-images');
+  end if;
+end;
+$$;
