@@ -66,6 +66,14 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       controlChannel.send(JSON.stringify(data))
   }
 
+  function getAcknowledgedBytes(fileId: string) {
+    return outgoingProgressMap.get(fileId)?.lastReceived ?? 0
+  }
+
+  function isRemoteReadyForFile(fileId: string) {
+    return outgoingProgressMap.get(fileId)?.ready ?? false
+  }
+
   function finishIncomingFile() {
     if (!incomingFile)
       return
@@ -139,6 +147,12 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
         startedAt: now,
         status: DropFileTransferStatus.Receiving,
       }, false)
+      sendControlMessage({ id: data.id, kind: DropMessageKind.FileReady })
+    }
+    else if (data.kind === DropMessageKind.FileReady && data.id) {
+      const snapshot = outgoingProgressMap.get(data.id)
+      if (snapshot)
+        outgoingProgressMap.set(data.id, { ...snapshot, ready: true })
     }
     else if (data.kind === DropMessageKind.FileProgress && data.id && data.received !== undefined && data.size) {
       const now = Date.now()
@@ -153,7 +167,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       const averageBytesPerSecond = data.received / Math.max((now - startedAt) / 1000, 0.001)
       const peakBytesPerSecond = Math.max(progressSnapshot?.peakBytesPerSecond ?? 0, speedBytesPerSecond)
 
-      outgoingProgressMap.set(data.id, { averageBytesPerSecond, lastProgressAt: now, lastProgressGapMs, lastReceived: data.received, peakBytesPerSecond, stalledCount, startedAt })
+      outgoingProgressMap.set(data.id, { averageBytesPerSecond, lastProgressAt: now, lastProgressGapMs, lastReceived: data.received, peakBytesPerSecond, ready: progressSnapshot?.ready ?? false, stalledCount, startedAt })
 
       updateFileMessage(data.id, {
         averageBytesPerSecond,
@@ -167,12 +181,10 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
         stalledCount,
         status: data.received >= data.size ? DropFileTransferStatus.Complete : DropFileTransferStatus.Sending,
       })
-
-      if (data.received >= data.size)
-        outgoingProgressMap.delete(data.id)
     }
     else if (data.kind === DropMessageKind.FileEnd) {
-      finishIncomingFile()
+      if (!data.id || incomingFile?.id === data.id)
+        finishIncomingFile()
     }
   }
 
@@ -225,7 +237,9 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       const chunk = event.data as ArrayBuffer
       incomingFile.chunks.push(chunk)
       incomingFile.received += chunk.byteLength
-      updateTransferProgress(incomingFile)
+      updateTransferProgress(incomingFile, incomingFile.received >= incomingFile.size)
+      if (incomingFile.received >= incomingFile.size)
+        finishIncomingFile()
     })
   }
 
@@ -385,6 +399,55 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     })
   }
 
+  function waitForRemoteWindow(fileId: string, sentBytes: number, waitForFullAck = false) {
+    const hasEnoughAcknowledgement = () => {
+      const acknowledgedBytes = getAcknowledgedBytes(fileId)
+      if (waitForFullAck)
+        return acknowledgedBytes >= sentBytes
+      return sentBytes - acknowledgedBytes <= DROP_FILE_TRANSFER_CONFIG.maxUnackedBytes
+    }
+
+    if (hasEnoughAcknowledgement())
+      return Promise.resolve()
+
+    return new Promise<void>((resolve) => {
+      let settled = false
+      const pollTimer = setInterval(() => {
+        if (hasEnoughAcknowledgement() || controlChannel?.readyState !== 'open' || fileChannel?.readyState !== 'open')
+          finish()
+      }, DROP_FILE_TRANSFER_CONFIG.ackPollIntervalMs)
+
+      function finish() {
+        if (settled)
+          return
+        settled = true
+        clearInterval(pollTimer)
+        resolve()
+      }
+    })
+  }
+
+  function waitForRemoteReady(fileId: string) {
+    if (isRemoteReadyForFile(fileId))
+      return Promise.resolve()
+
+    return new Promise<void>((resolve) => {
+      let settled = false
+      const pollTimer = setInterval(() => {
+        if (isRemoteReadyForFile(fileId) || controlChannel?.readyState !== 'open' || fileChannel?.readyState !== 'open')
+          finish()
+      }, DROP_FILE_TRANSFER_CONFIG.ackPollIntervalMs)
+
+      function finish() {
+        if (settled)
+          return
+        settled = true
+        clearInterval(pollTimer)
+        resolve()
+      }
+    })
+  }
+
   async function sendFile(file: File) {
     if (!controlChannel || !fileChannel || controlChannel.readyState !== 'open' || fileChannel.readyState !== 'open' || file.size > DROP_FILE_TRANSFER_CONFIG.maxFileSize)
       return
@@ -397,6 +460,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       lastProgressGapMs: 0,
       lastReceived: 0,
       peakBytesPerSecond: 0,
+      ready: false,
       stalledCount: 0,
       startedAt,
     })
@@ -415,14 +479,18 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       status: DropFileTransferStatus.Sending,
     }, true)
     controlChannel.send(JSON.stringify({ id, kind: DropMessageKind.FileStart, name: file.name, size: file.size, type: file.type }))
+    await waitForRemoteReady(id)
     const chunkSize = DROP_FILE_TRANSFER_CONFIG.chunkSize
     lastProgressAt = 0
     for (let offset = 0; offset < file.size; offset += chunkSize) {
       const nextOffset = Math.min(offset + chunkSize, file.size)
       fileChannel.send(await file.slice(offset, nextOffset).arrayBuffer())
       await waitForBuffer(fileChannel)
+      await waitForRemoteWindow(id, nextOffset)
     }
-    controlChannel.send(JSON.stringify({ kind: DropMessageKind.FileEnd }))
+    await waitForRemoteWindow(id, file.size, true)
+    controlChannel.send(JSON.stringify({ id, kind: DropMessageKind.FileEnd }))
+    outgoingProgressMap.delete(id)
   }
 
   function cleanup() {

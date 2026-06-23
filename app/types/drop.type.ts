@@ -2,6 +2,7 @@ export enum DropMessageKind {
   File = 'file',
   FileEnd = 'file:end',
   FileProgress = 'file:progress',
+  FileReady = 'file:ready',
   FileStart = 'file:start',
   System = 'system',
   Text = 'text',
@@ -58,6 +59,7 @@ export interface OutgoingDropFileProgress {
   lastProgressAt: number
   lastReceived: number
   peakBytesPerSecond: number
+  ready: boolean
   stalledCount: number
   startedAt: number
 }

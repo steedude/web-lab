@@ -34,9 +34,11 @@ export const DROP_FILE_TRANSFER_CONFIG = {
   chunkSize: 16 * 1024,
   maxBufferedAmount: 256 * 1024,
   maxFileSize: 50 * 1024 * 1024,
+  maxUnackedBytes: 128 * 1024,
   // Some mobile browsers do not fire `bufferedamountlow` consistently, so we also poll.
+  ackPollIntervalMs: 40,
   bufferPollIntervalMs: 40,
-  progressIntervalMs: 200,
+  progressIntervalMs: 100,
   stallThresholdMs: 1000,
 } as const
 
