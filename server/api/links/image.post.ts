@@ -1,6 +1,8 @@
 import type { NewShortLink } from '../../types/link.type'
 import { randomUUID } from 'node:crypto'
+import { ApiErrorCode } from '../../configs/error.config'
 import { LINK_CONFIG } from '../../configs/link.config'
+import { isDuplicateError, throwApiError } from '../../utils/error.util'
 import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, normalizeAlias, randomSlug, sanitizePassword, sanitizeText } from '../../utils/link.util'
 import { createImageLink, createShortLink } from '../../utils/supabase-rest.util'
 import { uploadPublicImage } from '../../utils/supabase-storage.util'
@@ -24,13 +26,13 @@ export default defineEventHandler(async (event) => {
   const form = await readMultipartFormData(event)
   const image = form?.find(item => item.name === 'image' && item.filename)
   if (!image?.data?.byteLength)
-    throw createError({ statusCode: 400, statusMessage: '請選擇要上傳的圖片' })
+    throwApiError(400, ApiErrorCode.ImageRequired)
 
   const contentType = image.type || 'application/octet-stream'
   if (!allowedTypes.has(contentType))
-    throw createError({ statusCode: 400, statusMessage: '目前只支援 JPG、PNG、WebP、GIF 圖片' })
+    throwApiError(400, ApiErrorCode.InvalidImageType)
   if (image.data.byteLength > LINK_CONFIG.maxImageUploadBytes)
-    throw createError({ statusCode: 400, statusMessage: '圖片不能超過 5 MB' })
+    throwApiError(400, ApiErrorCode.ImageTooLarge)
 
   const imageData = image.data
   const imageName = image.filename || 'image'
@@ -75,17 +77,15 @@ export default defineEventHandler(async (event) => {
         return await createWithSlug(randomSlug())
       }
       catch (error: unknown) {
-        const message = error instanceof Error ? error.message : ''
-        if (!message.includes('duplicate') && !message.includes('23505'))
+        if (!isDuplicateError(error))
           throw error
       }
     }
-    throw createError({ statusCode: 500, statusMessage: '建立短網址失敗，請再試一次' })
+    throwApiError(500, ApiErrorCode.CreateLinkFailed)
   }
   catch (error: unknown) {
-    const message = error instanceof Error ? error.message : ''
-    if (message.includes('duplicate') || message.includes('23505'))
-      throw createError({ statusCode: 409, statusMessage: '這個自訂代碼已經被使用' })
+    if (isDuplicateError(error))
+      throwApiError(409, ApiErrorCode.AliasTaken)
     throw error
   }
 })

@@ -85,6 +85,27 @@
   "links": {
     "eyebrow": "EXPERIMENT 03 / LINK TOOLKIT"
   },
+  "errors": {
+    "ALIAS_TAKEN": "This custom code is already in use. Try another one.",
+    "CREATE_LINK_FAILED": "Could not create the short link. Please try again.",
+    "DATABASE_NOT_CONFIGURED": "Database is not configured yet.",
+    "IMAGE_REQUIRED": "Please choose an image to upload.",
+    "IMAGE_TOO_LARGE": "Image must be 5 MB or smaller.",
+    "INVALID_ALIAS": "Custom code must be 3–24 characters and can only use letters, numbers, - or _.",
+    "INVALID_IMAGE_TYPE": "Only JPG, PNG, WebP, and GIF images are supported.",
+    "INVALID_URL": "Please enter a valid URL.",
+    "PASSWORD_TOO_LONG": "Password is too long.",
+    "PASSWORD_TOO_SHORT": "Password must be at least 4 characters.",
+    "PREVIEW_FETCH_FAILED": "Could not read the page preview.",
+    "RATE_LIMITED": "You are creating links too quickly. Please try again later.",
+    "REDIRECT_LIMIT_EXCEEDED": "This URL redirects too many times.",
+    "STORAGE_NOT_CONFIGURED": "Storage is not configured yet.",
+    "UNREADABLE_PREVIEW": "This URL does not provide readable page information.",
+    "UNSAFE_INTERNAL_URL": "Internal or private URLs are not allowed.",
+    "UNKNOWN_ERROR": "Something went wrong. Please try again.",
+    "UNSUPPORTED_URL_PROTOCOL": "Only HTTP and HTTPS URLs are supported.",
+    "URL_CONTAINS_CREDENTIALS": "URLs cannot contain username or password."
+  },
   "placeholder": {
     "experiment": "EXPERIMENT {index}",
     "dropTitle": "Web AirDrop",

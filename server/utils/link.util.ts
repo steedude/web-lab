@@ -1,7 +1,9 @@
 import type { H3Event } from 'h3'
 import type { NewShortLink, ShortLinkResponse } from '../types/link.type'
 import { randomBytes } from 'node:crypto'
+import { ApiErrorCode } from '../configs/error.config'
 import { LINK_CONFIG, LinkExpiryDay } from '../configs/link.config'
+import { throwApiError } from './error.util'
 
 const attempts = new Map<string, number[]>()
 
@@ -14,7 +16,7 @@ export function normalizeAlias(alias: string | undefined) {
   if (!value)
     return null
   if (!LINK_CONFIG.aliasPattern.test(value))
-    throw createError({ statusCode: 400, statusMessage: '自訂代碼需為 3–24 個英數字、- 或 _' })
+    throwApiError(400, ApiErrorCode.InvalidAlias)
   return value
 }
 
@@ -35,9 +37,9 @@ export function sanitizePassword(value: string | undefined) {
   if (!password)
     return null
   if (password.length < 4)
-    throw createError({ statusCode: 400, statusMessage: '密碼至少需要 4 個字元' })
+    throwApiError(400, ApiErrorCode.PasswordTooShort)
   if (password.length > LINK_CONFIG.maxPasswordLength)
-    throw createError({ statusCode: 400, statusMessage: '密碼太長了' })
+    throwApiError(400, ApiErrorCode.PasswordTooLong)
   return password
 }
 
@@ -58,7 +60,7 @@ export function enforceCreateRateLimit(event: H3Event) {
   const now = Date.now()
   const recent = (attempts.get(ip) || []).filter(time => now - time < LINK_CONFIG.rateLimit.windowMs)
   if (recent.length >= LINK_CONFIG.rateLimit.maxAttempts)
-    throw createError({ statusCode: 429, statusMessage: '建立太頻繁，請稍後再試' })
+    throwApiError(429, ApiErrorCode.RateLimited)
   attempts.set(ip, [...recent, now])
   return now
 }

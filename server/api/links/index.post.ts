@@ -1,5 +1,7 @@
 import type { CreateLinkBody, NewShortLink } from '../../types/link.type'
+import { ApiErrorCode } from '../../configs/error.config'
 import { LINK_CONFIG } from '../../configs/link.config'
+import { isDuplicateError, throwApiError } from '../../utils/error.util'
 import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, normalizeAlias, randomSlug, safeOptionalUrl, sanitizePassword, sanitizeText } from '../../utils/link.util'
 import { createShortLink } from '../../utils/supabase-rest.util'
 import { assertPublicDestination, normalizePublicUrl } from '../../utils/url.util'
@@ -8,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const now = enforceCreateRateLimit(event)
   const body = await readBody<CreateLinkBody>(event)
   if (!body.url || body.url.length > LINK_CONFIG.maxUrlLength)
-    throw createError({ statusCode: 400, statusMessage: '請輸入有效網址' })
+    throwApiError(400, ApiErrorCode.InvalidUrl)
   const target = normalizePublicUrl(body.url)
   await assertPublicDestination(target)
   const alias = normalizeAlias(body.alias)
@@ -37,17 +39,15 @@ export default defineEventHandler(async (event) => {
         return await createWithSlug(randomSlug())
       }
       catch (error: unknown) {
-        const message = error instanceof Error ? error.message : ''
-        if (!message.includes('duplicate') && !message.includes('23505'))
+        if (!isDuplicateError(error))
           throw error
       }
     }
-    throw createError({ statusCode: 500, statusMessage: '建立短網址失敗，請再試一次' })
+    throwApiError(500, ApiErrorCode.CreateLinkFailed)
   }
   catch (error: unknown) {
-    const message = error instanceof Error ? error.message : ''
-    if (message.includes('duplicate') || message.includes('23505'))
-      throw createError({ statusCode: 409, statusMessage: '這個自訂代碼已被使用' })
+    if (isDuplicateError(error))
+      throwApiError(409, ApiErrorCode.AliasTaken)
     throw error
   }
 })

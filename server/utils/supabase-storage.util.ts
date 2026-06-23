@@ -1,10 +1,12 @@
+import { ApiErrorCode } from '../configs/error.config'
 import { LINK_CONFIG } from '../configs/link.config'
+import { throwApiError } from './error.util'
 
 function storageCredentials() {
   const config = useRuntimeConfig()
   const key = config.supabaseServiceRoleKey || config.public.supabasePublishableKey
   if (!config.public.supabaseUrl || !key)
-    throw createError({ statusCode: 503, statusMessage: 'Supabase 尚未設定' })
+    throwApiError(503, ApiErrorCode.StorageNotConfigured)
   return { key, url: config.public.supabaseUrl }
 }
 

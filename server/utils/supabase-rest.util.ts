@@ -1,10 +1,12 @@
 import type { NewImageLink, NewShortLink, ResolvedImageLink, ResolvedShortLink } from '../types/link.type'
+import { ApiErrorCode } from '../configs/error.config'
+import { throwApiError } from './error.util'
 
 function credentials() {
   const config = useRuntimeConfig()
   const key = config.supabaseServiceRoleKey || config.public.supabasePublishableKey
   if (!config.public.supabaseUrl || !key)
-    throw createError({ statusCode: 503, statusMessage: '資料庫尚未設定' })
+    throwApiError(503, ApiErrorCode.DatabaseNotConfigured)
   return { key, url: config.public.supabaseUrl }
 }
 

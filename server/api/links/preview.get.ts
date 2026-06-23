@@ -1,5 +1,7 @@
 import type { LinkPreview } from '../../types/link.type'
+import { ApiErrorCode } from '../../configs/error.config'
 import { LINK_CONFIG, LINK_PREVIEW_USER_AGENT } from '../../configs/link.config'
+import { throwApiError } from '../../utils/error.util'
 import { buildScreenshotUrl, decodeHtmlEntities, sanitizeText } from '../../utils/link.util'
 import { assertPublicDestination, normalizePublicUrl } from '../../utils/url.util'
 
@@ -28,7 +30,7 @@ async function safeFetch(startUrl: URL) {
       return response
     current = new URL(location, current)
   }
-  throw createError({ statusCode: 422, statusMessage: '網址重新導向次數過多' })
+  throwApiError(422, ApiErrorCode.RedirectLimitExceeded)
 }
 
 async function readHtml(response: Response) {
@@ -50,12 +52,12 @@ async function readHtml(response: Response) {
 export default defineEventHandler(async (event) => {
   const input = getQuery(event).url
   if (typeof input !== 'string' || input.length > LINK_CONFIG.maxUrlLength)
-    throw createError({ statusCode: 400, statusMessage: '請輸入有效網址' })
+    throwApiError(400, ApiErrorCode.InvalidUrl)
   const url = normalizePublicUrl(input)
   const response = await safeFetch(url)
   const contentType = response.headers.get('content-type') || ''
   if (!response.ok || !contentType.includes('text/html'))
-    throw createError({ statusCode: 422, statusMessage: '這個網址沒有可讀取的網頁資訊' })
+    throwApiError(422, ApiErrorCode.UnreadablePreview)
   const html = await readHtml(response)
   const finalUrl = new URL(response.url)
   const title = meta(html, 'og:title') || html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] || finalUrl.hostname

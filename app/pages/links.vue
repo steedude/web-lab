@@ -2,6 +2,7 @@
 import type { CreatedLink, LinkPreview } from '~/types/link.type'
 import QRCode from 'qrcode'
 import { LINK_EXPIRY_OPTIONS, LINK_QR_CONFIG, LinkExpiryDay } from '~/configs/link.config'
+import { getApiErrorMessage } from '~/utils/error.util'
 import { getHostname, getPreviewImage, normalizeAliasInput } from '~/utils/link.util'
 
 type LinkMode = 'url' | 'image'
@@ -40,7 +41,7 @@ async function loadPreview() {
   }
   catch (error: any) {
     preview.value = null
-    errorMessage.value = error.data?.statusMessage || '讀取預覽失敗'
+    errorMessage.value = getApiErrorMessage(error, t, 'errors.PREVIEW_FETCH_FAILED')
   }
   finally {
     loadingPreview.value = false
@@ -99,7 +100,7 @@ async function createLink() {
       qrCode.value = await QRCode.toDataURL(created.value.shortUrl, LINK_QR_CONFIG)
   }
   catch (error: any) {
-    errorMessage.value = error.data?.statusMessage || '建立短網址失敗，請再試一次'
+    errorMessage.value = getApiErrorMessage(error, t, 'errors.CREATE_LINK_FAILED')
   }
   finally {
     creating.value = false
