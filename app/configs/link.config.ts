@@ -20,3 +20,9 @@ export const LINK_QR_CONFIG = {
   margin: 1,
   width: 360,
 } as const
+
+export const LINK_FORM_LIMITS = {
+  description: 100,
+  password: 128,
+  title: 50,
+} as const

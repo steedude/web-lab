@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ImageLinkResolve } from '~/types/link.type'
+import { LINK_FORM_LIMITS } from '~/configs/link.config'
 import { getApiErrorMessage } from '~/utils/error.util'
 
 const route = useRoute()
@@ -99,7 +100,7 @@ onMounted(async () => {
         <p class="mt-4 leading-7 text-ink/70">
           輸入密碼後，圖片會直接顯示在這個頁面。
         </p>
-        <input v-model="password" type="password" required autocomplete="current-password" placeholder="輸入密碼" class="focus-ring mt-6 w-full border-2 border-ink bg-paper px-4 py-4">
+        <input v-model="password" type="password" required :maxlength="LINK_FORM_LIMITS.password" autocomplete="current-password" placeholder="輸入密碼" class="focus-ring mt-6 w-full border-2 border-ink bg-paper px-4 py-4">
         <p v-if="errorMessage" class="mt-4 border-l-4 border-coral bg-coral/15 px-4 py-3 text-sm font-bold">
           {{ errorMessage }}
         </p>

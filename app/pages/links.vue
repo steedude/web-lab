@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CreatedLink, LinkPreview } from '~/types/link.type'
 import QRCode from 'qrcode'
-import { LINK_EXPIRY_OPTIONS, LINK_QR_CONFIG, LinkExpiryDay } from '~/configs/link.config'
+import { LINK_EXPIRY_OPTIONS, LINK_FORM_LIMITS, LINK_QR_CONFIG, LinkExpiryDay } from '~/configs/link.config'
 import { getApiErrorMessage } from '~/utils/error.util'
 import { getHostname, getPreviewImage } from '~/utils/link.util'
 
@@ -26,7 +26,12 @@ const { t } = useI18n()
 
 const previewHostname = computed(() => preview.value ? getHostname(preview.value.url) : '')
 const createdHostname = computed(() => created.value ? getHostname(created.value.target_url) : '')
+const createdIsImage = computed(() => Boolean(created.value?.target_url.includes('/image/')))
 const canCreate = computed(() => mode.value === 'url' ? Boolean(url.value.trim()) : Boolean(selectedImage.value))
+
+function limitText(value: string, maxLength: number) {
+  return value.trim().slice(0, maxLength)
+}
 
 function clearImagePreview() {
   if (selectedImagePreview.value)
@@ -88,7 +93,7 @@ async function createUrlLink() {
       expiresInDays: expiresInDays.value,
       favicon: preview.value.favicon,
       image: preview.value.image,
-      password: password.value || undefined,
+      password: limitText(password.value, LINK_FORM_LIMITS.password) || undefined,
       screenshot: preview.value.screenshot,
       title: preview.value.title,
       url: preview.value.url,
@@ -102,9 +107,9 @@ async function createImageLink() {
 
   const body = new FormData()
   body.append('image', selectedImage.value)
-  body.append('password', password.value)
-  body.append('title', imageTitle.value)
-  body.append('description', imageDescription.value)
+  body.append('password', limitText(password.value, LINK_FORM_LIMITS.password))
+  body.append('title', limitText(imageTitle.value, LINK_FORM_LIMITS.title))
+  body.append('description', limitText(imageDescription.value, LINK_FORM_LIMITS.description))
   body.append('expiresInDays', String(expiresInDays.value))
   created.value = await $fetch<CreatedLink>('/api/links/image', {
     method: 'POST',
@@ -142,7 +147,7 @@ function onImageChange(event: Event) {
   preview.value = null
   errorMessage.value = ''
   if (file && !imageTitle.value)
-    imageTitle.value = file.name.replace(/\.[^.]+$/, '')
+    imageTitle.value = limitText(file.name.replace(/\.[^.]+$/, ''), LINK_FORM_LIMITS.title)
 }
 
 async function copyShortUrl() {
@@ -202,10 +207,10 @@ onBeforeUnmount(clearImagePreview)
             </p>
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
               <label class="text-sm font-black">圖片標題
-                <input v-model="imageTitle" type="text" maxlength="160" placeholder="My image" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
+                <input v-model="imageTitle" type="text" :maxlength="LINK_FORM_LIMITS.title" placeholder="My image" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
               </label>
               <label class="text-sm font-black">圖片描述
-                <input v-model="imageDescription" type="text" maxlength="280" placeholder="留給接收者看的說明" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
+                <input v-model="imageDescription" type="text" :maxlength="LINK_FORM_LIMITS.description" placeholder="留給接收者看的說明" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
               </label>
             </div>
           </template>
@@ -219,7 +224,7 @@ onBeforeUnmount(clearImagePreview)
               </select>
             </label>
             <label class="text-sm font-black">密碼保護（選填）
-              <input v-model="password" type="password" maxlength="128" autocomplete="new-password" placeholder="留空代表任何人都能開啟" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-3">
+              <input v-model="password" type="password" :maxlength="LINK_FORM_LIMITS.password" autocomplete="new-password" placeholder="留空代表任何人都能開啟" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-3">
             </label>
           </div>
 
@@ -241,17 +246,17 @@ onBeforeUnmount(clearImagePreview)
           <a :href="created.shortUrl" target="_blank" class="focus-ring mt-3 block break-all text-3xl font-black underline sm:text-4xl">{{ created.shortUrl }}</a>
           <div class="mt-5 overflow-hidden border-2 border-ink bg-white">
             <div class="aspect-[1200/630] overflow-hidden border-b-2 border-ink bg-violet/20">
-              <img :src="getPreviewImage(created.image_url, created.screenshot_url)" :alt="created.title || created.target_url" class="h-full w-full object-cover object-top">
+              <img :src="getPreviewImage(created.image_url, created.screenshot_url)" :alt="created.title || created.target_url" class="h-full w-full" :class="createdIsImage ? 'object-contain p-3' : 'object-cover object-top'">
             </div>
             <div class="p-4">
               <div class="flex items-center gap-2 text-xs font-bold text-ink/55">
                 <img v-if="created.favicon_url" :src="created.favicon_url" alt="" class="size-5" @error="($event.target as HTMLImageElement).style.display = 'none'">
                 <span>{{ createdHostname }}</span>
               </div>
-              <h2 class="mt-2 text-xl font-black">
+              <h2 class="mt-2 line-clamp-2 break-words text-xl font-black">
                 {{ created.title || created.target_url }}
               </h2>
-              <p v-if="created.description" class="mt-2 text-sm leading-6 text-ink/70">
+              <p v-if="created.description" class="mt-2 line-clamp-3 break-words text-sm leading-6 text-ink/70">
                 {{ created.description }}
               </p>
             </div>
@@ -273,16 +278,16 @@ onBeforeUnmount(clearImagePreview)
 
         <div v-else-if="mode === 'image' && selectedImagePreview" class="overflow-hidden border-2 border-ink bg-white shadow-[8px_8px_0_#171714]">
           <div class="aspect-[1200/630] overflow-hidden border-b-2 border-ink bg-violet/20">
-            <img :src="selectedImagePreview" :alt="imageTitle || '上傳圖片預覽'" class="h-full w-full object-cover">
+            <img :src="selectedImagePreview" :alt="imageTitle || '上傳圖片預覽'" class="h-full w-full object-contain p-3">
           </div>
           <div class="p-5 sm:p-7">
             <p class="text-xs font-black tracking-[.2em]">
               IMAGE PREVIEW
             </p>
-            <h2 class="mt-3 text-3xl font-black tracking-tight">
+            <h2 class="mt-3 line-clamp-2 break-words text-3xl font-black tracking-tight">
               {{ imageTitle || selectedImage?.name }}
             </h2>
-            <p class="mt-3 leading-7 text-ink/70">
+            <p class="mt-3 line-clamp-3 break-words leading-7 text-ink/70">
               {{ imageDescription || '圖片分享頁建立後，可以搭配密碼保護分享。' }}
             </p>
           </div>
