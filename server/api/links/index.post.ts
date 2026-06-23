@@ -2,7 +2,7 @@ import type { CreateLinkBody, NewShortLink } from '../../types/link.type'
 import { ApiErrorCode } from '../../configs/error.config'
 import { LINK_CONFIG } from '../../configs/link.config'
 import { isDuplicateError, throwApiError } from '../../utils/error.util'
-import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, normalizeAlias, randomSlug, safeOptionalUrl, sanitizePassword, sanitizeText } from '../../utils/link.util'
+import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, randomSlug, safeOptionalUrl, sanitizePassword, sanitizeText } from '../../utils/link.util'
 import { createShortLink } from '../../utils/supabase-rest.util'
 import { assertPublicDestination, normalizePublicUrl } from '../../utils/url.util'
 
@@ -13,7 +13,6 @@ export default defineEventHandler(async (event) => {
     throwApiError(400, ApiErrorCode.InvalidUrl)
   const target = normalizePublicUrl(body.url)
   await assertPublicDestination(target)
-  const alias = normalizeAlias(body.alias)
   const days = Number(body.expiresInDays || 0)
   const payload: Omit<NewShortLink, 'slug'> = {
     description: sanitizeText(body.description, LINK_CONFIG.maxDescriptionLength),
@@ -32,8 +31,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    if (alias)
-      return await createWithSlug(alias)
     for (let attempt = 0; attempt < LINK_CONFIG.maxSlugAttempts; attempt++) {
       try {
         return await createWithSlug(randomSlug())

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { ApiErrorCode } from '../../configs/error.config'
 import { LINK_CONFIG } from '../../configs/link.config'
 import { isDuplicateError, throwApiError } from '../../utils/error.util'
-import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, normalizeAlias, randomSlug, sanitizePassword, sanitizeText } from '../../utils/link.util'
+import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, randomSlug, sanitizePassword, sanitizeText } from '../../utils/link.util'
 import { createImageLink, createShortLink } from '../../utils/supabase-rest.util'
 import { uploadPublicImage } from '../../utils/supabase-storage.util'
 
@@ -37,7 +37,6 @@ export default defineEventHandler(async (event) => {
   const imageData = image.data
   const imageName = image.filename || 'image'
   const field = (name: string) => form?.find(item => item.name === name)?.data.toString('utf8')
-  const alias = normalizeAlias(field('alias'))
   const days = Number(field('expiresInDays') || 0)
   const title = sanitizeText(field('title') || imageName, LINK_CONFIG.maxTitleLength)
   const description = sanitizeText(field('description'), LINK_CONFIG.maxDescriptionLength)
@@ -70,8 +69,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    if (alias)
-      return await createWithSlug(alias)
     for (let attempt = 0; attempt < LINK_CONFIG.maxSlugAttempts; attempt++) {
       try {
         return await createWithSlug(randomSlug())

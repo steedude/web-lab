@@ -3,7 +3,6 @@ export enum LinkExpiryDay {
   OneDay = 1,
   OneWeek = 7,
   OneMonth = 30,
-  OneYear = 365,
 }
 
 export enum LinkResolveStatus {

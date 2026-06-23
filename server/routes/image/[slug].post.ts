@@ -3,6 +3,7 @@ import { imagePage, imagePasswordPage } from '../../utils/redirect-page.util'
 import { resolveImageLink } from '../../utils/supabase-rest.util'
 
 export default defineEventHandler(async (event) => {
+  setHeader(event, 'cache-control', 'no-store')
   const slug = getRouterParam(event, 'slug')?.toLowerCase()
   if (!slug || !LINK_CONFIG.aliasPattern.test(slug))
     throw createError({ statusCode: 404, statusMessage: '找不到圖片' })
@@ -14,5 +15,5 @@ export default defineEventHandler(async (event) => {
   if (result.status === LinkResolveStatus.PasswordRequired || !result.image_url)
     return send(event, imagePasswordPage(slug, '密碼不正確，請再試一次。'), 'text/html')
 
-  return send(event, imagePage(result.image_url, result.title || '圖片分享', result.description || ''), 'text/html')
+  return send(event, imagePage(result.image_url, result.title || '圖片分享', result.description || '', slug), 'text/html')
 })

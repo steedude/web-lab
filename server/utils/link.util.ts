@@ -23,7 +23,7 @@ export function normalizeAlias(alias: string | undefined) {
 export function getExpiresAt(days: number, now = Date.now()) {
   if (days === LinkExpiryDay.Forever)
     return null
-  if (![LinkExpiryDay.OneDay, LinkExpiryDay.OneWeek, LinkExpiryDay.OneMonth, LinkExpiryDay.OneYear].includes(days))
+  if (![LinkExpiryDay.OneDay, LinkExpiryDay.OneWeek, LinkExpiryDay.OneMonth].includes(days))
     return null
   return new Date(now + days * 86_400_000).toISOString()
 }

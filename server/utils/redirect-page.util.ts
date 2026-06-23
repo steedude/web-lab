@@ -59,10 +59,11 @@ export function imagePasswordPage(slug: string, error = '') {
 </html>`
 }
 
-export function imagePage(imageUrl: string, title = '圖片分享', description = '') {
+export function imagePage(imageUrl: string, title = '圖片分享', description = '', slug = '') {
   const safeTitle = escapeHtml(title)
   const safeDescription = escapeHtml(description)
   const safeImageUrl = escapeHtml(imageUrl)
+  const safeSlug = escapeHtml(slug)
   return `<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -73,20 +74,38 @@ export function imagePage(imageUrl: string, title = '圖片分享', description 
   <meta property="og:description" content="${safeDescription}">
   <meta property="og:image" content="${safeImageUrl}">
   <style>
-    body{margin:0;min-height:100vh;background:#171714;color:white;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    main{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}
-    article{width:min(1100px,100%)}
-    img{display:block;max-width:100%;max-height:78vh;margin:auto;border:2px solid white;background:white;object-fit:contain}
-    h1{margin:20px 0 8px;font-size:clamp(28px,5vw,56px);line-height:.95;font-weight:900}
-    p{margin:0;color:rgb(255 255 255 / .7);font-weight:700;line-height:1.7}
+    :root{--ink:#171714;--paper:#f5f0df;--violet:#ad9cff;--sky:#9be7ff}
+    body{margin:0;min-height:100vh;background:linear-gradient(135deg,#f5f0df,#edf8ff);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    header{display:flex;align-items:center;justify-content:space-between;max-width:1080px;margin:0 auto;padding:24px}
+    .brand{display:inline-flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.04em}
+    .dot{width:28px;height:28px;border:2px solid var(--ink);border-radius:999px;background:#b6ff4d;display:grid;place-items:center;font-size:10px}
+    main{max-width:1080px;margin:0 auto;padding:24px 24px 64px;box-sizing:border-box}
+    article{border:2px solid var(--ink);background:white;box-shadow:10px 10px 0 var(--violet);overflow:hidden}
+    .image-wrap{background:var(--paper);border-bottom:2px solid var(--ink);padding:24px}
+    img{display:block;max-width:100%;max-height:62vh;margin:auto;border:2px solid var(--ink);background:white;object-fit:contain}
+    .content{padding:24px}
+    .eyebrow{margin:0 0 12px;font-size:12px;font-weight:900;letter-spacing:.22em;color:rgb(23 23 20 / .55)}
+    h1{margin:0;font-size:clamp(32px,5vw,64px);line-height:.95;font-weight:900;letter-spacing:-.06em}
+    p{margin:14px 0 0;color:rgb(23 23 20 / .68);font-weight:700;line-height:1.7}
+    a{color:inherit;font-weight:900;text-decoration-thickness:2px;text-underline-offset:4px}
   </style>
+  ${safeSlug ? `<script>history.replaceState(null, '', '/image/${safeSlug}')</script>` : ''}
 </head>
 <body>
+  <header>
+    <div class="brand"><span class="dot">38</span><span>3854335 WEB LAB</span></div>
+    <a href="/links">建立自己的分享連結</a>
+  </header>
   <main>
     <article>
-      <img src="${safeImageUrl}" alt="${safeTitle}">
-      <h1>${safeTitle}</h1>
-      ${safeDescription ? `<p>${safeDescription}</p>` : ''}
+      <div class="image-wrap">
+        <img src="${safeImageUrl}" alt="${safeTitle}">
+      </div>
+      <div class="content">
+        <p class="eyebrow">PROTECTED IMAGE SHARE</p>
+        <h1>${safeTitle}</h1>
+        ${safeDescription ? `<p>${safeDescription}</p>` : ''}
+      </div>
     </article>
   </main>
 </body>

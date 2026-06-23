@@ -3,6 +3,7 @@ import { imagePage, imagePasswordPage } from '../../utils/redirect-page.util'
 import { resolveImageLink } from '../../utils/supabase-rest.util'
 
 export default defineEventHandler(async (event) => {
+  setHeader(event, 'cache-control', 'no-store')
   const slug = getRouterParam(event, 'slug')?.toLowerCase()
   if (!slug || !LINK_CONFIG.aliasPattern.test(slug))
     throw createError({ statusCode: 404, statusMessage: '找不到圖片' })
