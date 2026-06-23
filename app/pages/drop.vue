@@ -68,11 +68,11 @@ onMounted(() => {
       {{ t('common.arrowLeft') }} {{ t('common.backHome') }}
     </NuxtLink>
 
-    <DropDropStartPanel v-if="!started" v-model:room-input="roomInput" @start="start" />
+    <DropStartPanel v-if="!started" v-model:room-input="roomInput" @start="start" />
 
     <section v-else class="mt-10 grid min-h-[670px] gap-6 lg:grid-cols-[360px_1fr]">
-      <DropDropRoomSidebar :copied="copied" :is-ready="isReady" :qr-code="qrCode" :role="role" :room-id="roomId" @copy-invite="copyJoinUrl" />
-      <DropDropChatPanel v-model:text-input="textInput" :is-ready="isReady" :messages="messages" :transfer-progress="transferProgress" @choose-file="onFileChange" @send-text="sendText" />
+      <DropRoomSidebar :copied="copied" :is-ready="isReady" :qr-code="qrCode" :role="role" :room-id="roomId" @copy-invite="copyJoinUrl" />
+      <DropChatPanel v-model:text-input="textInput" :is-ready="isReady" :messages="messages" :transfer-progress="transferProgress" @choose-file="onFileChange" @send-text="sendText" />
     </section>
   </main>
 </template>

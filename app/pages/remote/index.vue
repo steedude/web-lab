@@ -136,7 +136,7 @@ useSeoMeta({
         </p>
       </div>
 
-      <RemoteRemotePairingCard
+      <RemotePairingCard
         class="lg:hidden"
         :connection-label="connectionLabel"
         :copied="copied"
@@ -149,7 +149,7 @@ useSeoMeta({
     </section>
 
     <section class="mt-12 grid gap-7 lg:grid-cols-[18rem_minmax(0,1fr)]">
-      <RemoteRemotePairingCard
+      <RemotePairingCard
         class="hidden lg:block"
         :connection-label="connectionLabel"
         :copied="copied"
@@ -170,7 +170,7 @@ useSeoMeta({
           </p>
         </div>
 
-        <RemoteRemoteSlideStage
+        <RemoteSlideStage
           ref="slideStage"
           :current-slide="currentSlide"
           :pointer="pointer"
