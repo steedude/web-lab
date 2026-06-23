@@ -1,0 +1,39 @@
+export enum LinkExpiryDay {
+  Forever = 0,
+  OneDay = 1,
+  OneWeek = 7,
+  OneMonth = 30,
+  OneYear = 365,
+}
+
+export enum LinkResolveStatus {
+  Expired = 'expired',
+  NotFound = 'not_found',
+  PasswordRequired = 'password_required',
+  Resolved = 'resolved',
+}
+
+export const LINK_CONFIG = {
+  aliasPattern: /^[a-z0-9_-]{3,24}$/,
+  htmlPreviewMaxBytes: 1_000_000,
+  maxDescriptionLength: 280,
+  maxPasswordLength: 128,
+  maxRedirects: 4,
+  maxSlugAttempts: 4,
+  maxTitleLength: 160,
+  maxUrlLength: 2048,
+  previewTimeoutMs: 8000,
+  rateLimit: {
+    maxAttempts: 10,
+    windowMs: 60_000,
+  },
+  screenshot: {
+    height: 630,
+    provider: 'https://image.thum.io/get',
+    width: 1200,
+  },
+  slugBytes: 5,
+  slugLength: 7,
+} as const
+
+export const LINK_PREVIEW_USER_AGENT = 'Mozilla/5.0 (compatible; WebLabPreview/1.0)'

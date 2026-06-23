@@ -232,30 +232,46 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:py-16">
-    <NuxtLink to="/" class="focus-ring inline-flex font-bold hover:underline">← 回到實驗室</NuxtLink>
+    <NuxtLink to="/" class="focus-ring inline-flex font-bold hover:underline">
+      ← 回到實驗室
+    </NuxtLink>
 
     <section v-if="!started" class="mt-10 grid gap-8 lg:grid-cols-[1.2fr_.8fr]">
       <div>
-        <p class="text-sm font-black tracking-[.24em]">EXPERIMENT 02 / PEER TO PEER</p>
-        <h1 class="mt-5 max-w-4xl text-5xl leading-[.95] font-black tracking-[-.055em] sm:text-7xl">檔案不繞路，直接送到你手上。</h1>
-        <p class="mt-6 max-w-2xl text-lg leading-8">建立臨時房間，讓另一台裝置掃描加入。文字與檔案透過 WebRTC 點對點傳輸，伺服器只負責讓雙方找到彼此。</p>
+        <p class="text-sm font-black tracking-[.24em]">
+          EXPERIMENT 02 / PEER TO PEER
+        </p>
+        <h1 class="mt-5 max-w-4xl text-5xl leading-[.95] font-black tracking-[-.055em] sm:text-7xl">
+          檔案不繞路，直接送到你手上。
+        </h1>
+        <p class="mt-6 max-w-2xl text-lg leading-8">
+          建立臨時房間，讓另一台裝置掃描加入。文字與檔案透過 WebRTC 點對點傳輸，伺服器只負責讓雙方找到彼此。
+        </p>
       </div>
       <div class="border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#171714] sm:p-7">
         <button class="focus-ring w-full border-2 border-ink bg-sky px-5 py-5 text-left text-xl font-black transition hover:-translate-y-1" @click="start('drop-host')">
           建立新房間 <span class="float-right">→</span>
         </button>
-        <div class="my-5 flex items-center gap-3 text-xs font-black tracking-[.2em]"><span class="h-px flex-1 bg-ink/30" />或輸入房間代碼<span class="h-px flex-1 bg-ink/30" /></div>
+        <div class="my-5 flex items-center gap-3 text-xs font-black tracking-[.2em]">
+          <span class="h-px flex-1 bg-ink/30" />或輸入房間代碼<span class="h-px flex-1 bg-ink/30" />
+        </div>
         <form class="flex gap-2" @submit.prevent="start('drop-guest', roomInput)">
           <input v-model="roomInput" maxlength="6" placeholder="ABC123" class="focus-ring min-w-0 flex-1 border-2 border-ink bg-paper px-4 py-4 font-mono text-xl font-black uppercase" @input="roomInput = roomInput.toUpperCase().replace(/[^A-Z0-9]/g, '')">
-          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-40" :disabled="roomInput.length !== 6">加入</button>
+          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-40" :disabled="roomInput.length !== 6">
+            加入
+          </button>
         </form>
       </div>
     </section>
 
     <section v-else class="mt-10 grid min-h-[670px] gap-6 lg:grid-cols-[360px_1fr]">
       <aside class="border-2 border-ink bg-sky p-5 shadow-[6px_6px_0_#171714]">
-        <p class="text-xs font-black tracking-[.2em]">ROOM</p>
-        <div class="mt-2 font-mono text-4xl font-black tracking-[.12em]">{{ roomId }}</div>
+        <p class="text-xs font-black tracking-[.2em]">
+          ROOM
+        </p>
+        <div class="mt-2 font-mono text-4xl font-black tracking-[.12em]">
+          {{ roomId }}
+        </div>
         <div class="mt-4 inline-flex items-center gap-2 border border-ink bg-white px-3 py-2 text-sm font-bold">
           <span class="size-2 rounded-full" :class="isReady ? 'bg-green-500' : 'animate-pulse bg-coral'" />
           {{ isReady ? '點對點連線完成' : '等待另一台裝置' }}
@@ -265,35 +281,67 @@ onBeforeUnmount(() => {
           <div class="mt-6 border-2 border-ink bg-white p-3">
             <img v-if="qrCode" :src="qrCode" alt="加入傳輸房間的 QR Code" class="w-full">
           </div>
-          <button class="focus-ring mt-4 w-full border-2 border-ink bg-white px-4 py-3 font-black" @click="copyJoinUrl">{{ copied ? '已複製' : '複製邀請連結' }}</button>
+          <button class="focus-ring mt-4 w-full border-2 border-ink bg-white px-4 py-3 font-black" @click="copyJoinUrl">
+            {{ copied ? '已複製' : '複製邀請連結' }}
+          </button>
         </template>
-        <p class="mt-5 text-sm leading-6">檔案只存在兩台裝置的瀏覽器記憶體，不會上傳到本站。單檔上限 50 MB。</p>
+        <p class="mt-5 text-sm leading-6">
+          檔案只存在兩台裝置的瀏覽器記憶體，不會上傳到本站。單檔上限 50 MB。
+        </p>
       </aside>
 
       <div class="flex min-h-[620px] flex-col border-2 border-ink bg-white">
         <header class="flex items-center justify-between border-b-2 border-ink px-5 py-4">
-          <div><p class="text-xs font-black tracking-[.18em]">WEB AIRDROP</p><h1 class="text-2xl font-black">即時傳輸</h1></div>
+          <div>
+            <p class="text-xs font-black tracking-[.18em]">
+              WEB AIRDROP
+            </p><h1 class="text-2xl font-black">
+              即時傳輸
+            </h1>
+          </div>
           <span class="hidden text-sm font-bold sm:block">WebRTC DataChannel</span>
         </header>
         <div class="flex-1 space-y-3 overflow-y-auto p-5">
           <div v-if="!messages.length" class="grid h-full min-h-72 place-items-center text-center text-ink/55">
-            <div><div class="text-5xl">↗</div><p class="mt-3 font-bold">連線後，從這裡傳送文字或檔案</p></div>
+            <div>
+              <div class="text-5xl">
+                ↗
+              </div><p class="mt-3 font-bold">
+                連線後，從這裡傳送文字或檔案
+              </p>
+            </div>
           </div>
           <div v-for="message in messages" :key="message.id" class="max-w-[85%]" :class="[message.mine ? 'ml-auto' : '', message.kind === 'system' ? 'mx-auto text-center' : '']">
-            <p v-if="message.kind === 'system'" class="text-xs font-bold text-ink/55">{{ message.text }}</p>
+            <p v-if="message.kind === 'system'" class="text-xs font-bold text-ink/55">
+              {{ message.text }}
+            </p>
             <div v-else class="border-2 border-ink px-4 py-3" :class="message.mine ? 'bg-acid' : 'bg-paper'">
-              <p v-if="message.kind === 'text'" class="whitespace-pre-wrap break-words">{{ message.text }}</p>
+              <p v-if="message.kind === 'text'" class="whitespace-pre-wrap break-words">
+                {{ message.text }}
+              </p>
               <a v-else-if="message.url" :href="message.url" :download="message.name" class="focus-ring block font-black underline">↓ {{ message.name }}<small class="ml-2 font-normal">{{ formatBytes(message.size) }}</small></a>
-              <p v-else class="font-black">↑ {{ message.name }} <small class="font-normal">{{ formatBytes(message.size) }}</small></p>
+              <p v-else class="font-black">
+                ↑ {{ message.name }} <small class="font-normal">{{ formatBytes(message.size) }}</small>
+              </p>
             </div>
           </div>
         </div>
-        <div v-if="transferProgress !== null" class="border-t-2 border-ink px-5 py-3"><div class="mb-1 flex justify-between text-xs font-black"><span>傳輸中</span><span>{{ transferProgress }}%</span></div><div class="h-2 bg-ink/15"><div class="h-full bg-violet transition-all" :style="{ width: `${transferProgress}%` }" /></div></div>
+        <div v-if="transferProgress !== null" class="border-t-2 border-ink px-5 py-3">
+          <div class="mb-1 flex justify-between text-xs font-black">
+            <span>傳輸中</span><span>{{ transferProgress }}%</span>
+          </div><div class="h-2 bg-ink/15">
+            <div class="h-full bg-violet transition-all" :style="{ width: `${transferProgress}%` }" />
+          </div>
+        </div>
         <form class="flex gap-2 border-t-2 border-ink p-3 sm:p-4" @submit.prevent="sendText">
           <input ref="fileInput" type="file" class="hidden" @change="onFileChange">
-          <button type="button" class="focus-ring border-2 border-ink px-4 text-xl font-black disabled:opacity-30" :disabled="!isReady" aria-label="選擇檔案" @click="fileInput?.click()">＋</button>
+          <button type="button" class="focus-ring border-2 border-ink px-4 text-xl font-black disabled:opacity-30" :disabled="!isReady" aria-label="選擇檔案" @click="fileInput?.click()">
+            ＋
+          </button>
           <input v-model="textInput" class="focus-ring min-w-0 flex-1 border-2 border-ink bg-paper px-4 py-3" placeholder="輸入訊息…" :disabled="!isReady">
-          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-30" :disabled="!isReady || !textInput.trim()">傳送</button>
+          <button class="focus-ring border-2 border-ink bg-ink px-5 font-black text-white disabled:opacity-30" :disabled="!isReady || !textInput.trim()">
+            傳送
+          </button>
         </form>
       </div>
     </section>

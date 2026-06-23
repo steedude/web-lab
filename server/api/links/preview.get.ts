@@ -1,8 +1,7 @@
-import { assertPublicDestination, normalizePublicUrl } from '../../utils/urls'
-
-function decodeEntities(value: string) {
-  return value.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, String.fromCharCode(39)).replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-}
+import type { LinkPreview } from '../../types/link.type'
+import { LINK_CONFIG, LINK_PREVIEW_USER_AGENT } from '../../configs/link.config'
+import { buildScreenshotUrl, decodeHtmlEntities, sanitizeText } from '../../utils/link.util'
+import { assertPublicDestination, normalizePublicUrl } from '../../utils/url.util'
 
 function meta(html: string, key: string) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -15,12 +14,12 @@ function meta(html: string, key: string) {
 
 async function safeFetch(startUrl: URL) {
   let current = startUrl
-  for (let redirect = 0; redirect <= 4; redirect++) {
+  for (let redirect = 0; redirect <= LINK_CONFIG.maxRedirects; redirect++) {
     await assertPublicDestination(current)
     const response = await fetch(current, {
-      headers: { 'user-agent': 'Mozilla/5.0 (compatible; WebLabPreview/1.0)' },
+      headers: { 'user-agent': LINK_PREVIEW_USER_AGENT },
       redirect: 'manual',
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(LINK_CONFIG.previewTimeoutMs),
     })
     if (![301, 302, 303, 307, 308].includes(response.status))
       return response
@@ -38,19 +37,19 @@ async function readHtml(response: Response) {
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let html = ''
-  while (html.length < 1_000_000) {
+  while (html.length < LINK_CONFIG.htmlPreviewMaxBytes) {
     const { done, value } = await reader.read()
     if (done)
       break
     html += decoder.decode(value, { stream: true })
   }
   await reader.cancel()
-  return html.slice(0, 1_000_000)
+  return html.slice(0, LINK_CONFIG.htmlPreviewMaxBytes)
 }
 
 export default defineEventHandler(async (event) => {
   const input = getQuery(event).url
-  if (typeof input !== 'string' || input.length > 2048)
+  if (typeof input !== 'string' || input.length > LINK_CONFIG.maxUrlLength)
     throw createError({ statusCode: 400, statusMessage: '請輸入有效網址' })
   const url = normalizePublicUrl(input)
   const response = await safeFetch(url)
@@ -65,11 +64,11 @@ export default defineEventHandler(async (event) => {
   const imageUrl = imageValue ? new URL(imageValue, finalUrl) : null
   const image = imageUrl && ['http:', 'https:'].includes(imageUrl.protocol) ? imageUrl.toString() : null
   return {
-    description: decodeEntities(description.trim()).slice(0, 280),
+    description: sanitizeText(decodeHtmlEntities(description), LINK_CONFIG.maxDescriptionLength) || '',
     favicon: `${finalUrl.origin}/favicon.ico`,
     image,
-    screenshot: `https://image.thum.io/get/width/1200/crop/630/noanimate/${encodeURIComponent(finalUrl.toString())}`,
-    title: decodeEntities(title.trim()).slice(0, 160),
+    screenshot: buildScreenshotUrl(finalUrl),
+    title: sanitizeText(decodeHtmlEntities(title), LINK_CONFIG.maxTitleLength) || finalUrl.hostname,
     url: finalUrl.toString(),
-  }
+  } satisfies LinkPreview
 })

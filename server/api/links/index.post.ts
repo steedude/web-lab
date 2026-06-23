@@ -1,70 +1,38 @@
-import { randomBytes } from 'node:crypto'
-import { insertShortLink } from '../../utils/supabase-rest'
-import { assertPublicDestination, normalizePublicUrl } from '../../utils/urls'
-
-const attempts = new Map<string, number[]>()
-const randomSlug = () => randomBytes(5).toString('base64url').slice(0, 7)
-const MAX_SLUG_ATTEMPTS = 4
-
-interface CreateLinkBody {
-  alias?: string
-  description?: string
-  expiresInDays?: number
-  favicon?: string
-  image?: string | null
-  screenshot?: string
-  title?: string
-  url?: string
-}
-
-function safeOptionalUrl(value: string | null | undefined, baseUrl: URL) {
-  if (!value)
-    return null
-  try {
-    const url = new URL(value, baseUrl)
-    return ['http:', 'https:'].includes(url.protocol) ? url.toString().slice(0, 2048) : null
-  }
-  catch {
-    return null
-  }
-}
+import type { CreateLinkBody, NewShortLink } from '../../types/link.type'
+import { LINK_CONFIG } from '../../configs/link.config'
+import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, normalizeAlias, randomSlug, safeOptionalUrl, sanitizePassword, sanitizeText } from '../../utils/link.util'
+import { createShortLink } from '../../utils/supabase-rest.util'
+import { assertPublicDestination, normalizePublicUrl } from '../../utils/url.util'
 
 export default defineEventHandler(async (event) => {
-  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown'
-  const now = Date.now()
-  const recent = (attempts.get(ip) || []).filter(time => now - time < 60_000)
-  if (recent.length >= 10)
-    throw createError({ statusCode: 429, statusMessage: '建立太頻繁，請稍後再試' })
-  attempts.set(ip, [...recent, now])
+  const now = enforceCreateRateLimit(event)
   const body = await readBody<CreateLinkBody>(event)
-  if (!body.url || body.url.length > 2048)
+  if (!body.url || body.url.length > LINK_CONFIG.maxUrlLength)
     throw createError({ statusCode: 400, statusMessage: '請輸入有效網址' })
   const target = normalizePublicUrl(body.url)
   await assertPublicDestination(target)
-  const alias = body.alias?.trim().toLowerCase()
-  if (alias && !/^[a-z0-9_-]{3,24}$/.test(alias))
-    throw createError({ statusCode: 400, statusMessage: '自訂代碼需為 3–24 個英數字、- 或 _' })
+  const alias = normalizeAlias(body.alias)
   const days = Number(body.expiresInDays || 0)
-  const expiresAt = days > 0 && days <= 365 ? new Date(now + days * 86_400_000).toISOString() : null
-  const payload = {
-    description: body.description?.trim().slice(0, 280) || null,
-    expires_at: expiresAt,
+  const payload: Omit<NewShortLink, 'slug'> = {
+    description: sanitizeText(body.description, LINK_CONFIG.maxDescriptionLength),
+    expires_at: getExpiresAt(days, now),
     favicon_url: safeOptionalUrl(body.favicon, target),
     image_url: safeOptionalUrl(body.image, target),
+    password: sanitizePassword(body.password),
     screenshot_url: safeOptionalUrl(body.screenshot, target),
     target_url: target.toString(),
-    title: body.title?.trim().slice(0, 160) || null,
+    title: sanitizeText(body.title, LINK_CONFIG.maxTitleLength),
   }
 
   async function createWithSlug(slug: string) {
-    const created = await insertShortLink({ ...payload, slug })
-    return { ...created, shortUrl: `${getRequestURL(event).origin}/s/${created.slug}` }
+    const created = await createShortLink({ ...payload, slug })
+    return buildShortLinkResponse(event, created)
   }
 
   try {
     if (alias)
       return await createWithSlug(alias)
-    for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
+    for (let attempt = 0; attempt < LINK_CONFIG.maxSlugAttempts; attempt++) {
       try {
         return await createWithSlug(randomSlug())
       }
