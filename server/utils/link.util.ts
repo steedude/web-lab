@@ -81,7 +81,7 @@ export function buildShortLinkResponse(event: H3Event, link: NewShortLink, passw
 }
 
 export function buildScreenshotUrl(url: URL) {
-  return `${LINK_CONFIG.screenshot.provider}/width/${LINK_CONFIG.screenshot.width}/crop/${LINK_CONFIG.screenshot.height}/noanimate/${encodeURIComponent(url.toString())}`
+  return `${LINK_CONFIG.screenshot.provider}/?url=${encodeURIComponent(url.toString())}&screenshot=true&meta=false&embed=screenshot.url`
 }
 
 export function decodeHtmlEntities(value: string) {

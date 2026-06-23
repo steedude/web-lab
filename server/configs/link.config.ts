@@ -29,7 +29,7 @@ export const LINK_CONFIG = {
   },
   screenshot: {
     height: 630,
-    provider: 'https://image.thum.io/get',
+    provider: 'https://api.microlink.io',
     width: 1200,
   },
   slugBytes: 5,
