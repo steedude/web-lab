@@ -43,7 +43,7 @@
     "links": {
       "index": "03",
       "title": "Short Links & Thumbnails",
-      "description": "Create short links, QR codes, rich previews, and page thumbnails.",
+      "description": "Create short links, QR codes, and password-protected image share pages.",
       "badge": "LIVE"
     }
   },
@@ -158,8 +158,6 @@
       "oneMonth": "30 days"
     },
     "actions": {
-      "loadingPreview": "Loading…",
-      "getPreview": "Get screenshot",
       "creating": "Creating…",
       "createUrl": "Create short link",
       "createImage": "Create image share page",
@@ -212,15 +210,10 @@
     "INVALID_URL": "Please enter a valid URL.",
     "PASSWORD_TOO_LONG": "Password can be at most 16 characters.",
     "PASSWORD_TOO_SHORT": "Password must be at least 4 characters.",
-    "PREVIEW_FETCH_FAILED": "Could not read the page preview.",
     "RATE_LIMITED": "You are creating links too quickly. Please try again later.",
-    "REDIRECT_LIMIT_EXCEEDED": "This URL redirects too many times.",
     "STORAGE_NOT_CONFIGURED": "Storage is not configured yet.",
-    "UNREADABLE_PREVIEW": "This URL does not provide readable page information.",
-    "UNSAFE_INTERNAL_URL": "Internal or private URLs are not allowed.",
     "UNKNOWN_ERROR": "Something went wrong. Please try again.",
-    "UNSUPPORTED_URL_PROTOCOL": "Only HTTP and HTTPS URLs are supported.",
-    "URL_CONTAINS_CREDENTIALS": "URLs cannot contain username or password."
+    "UNSUPPORTED_URL_PROTOCOL": "Only HTTP and HTTPS URLs are supported."
   },
   "placeholder": {
     "experiment": "EXPERIMENT {index}",

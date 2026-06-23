@@ -12,15 +12,6 @@ export interface CreateLinkBody {
   url?: string
 }
 
-export interface LinkPreview {
-  description: string
-  favicon: string
-  image: string | null
-  screenshot: string
-  title: string
-  url: string
-}
-
 export interface NewShortLink {
   description: string | null
   expires_at: string | null

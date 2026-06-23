@@ -79,16 +79,3 @@ export function buildShortLinkResponse(event: H3Event, link: NewShortLink, passw
     title: link.title,
   }
 }
-
-export function buildScreenshotUrl(url: URL) {
-  return `${LINK_CONFIG.screenshot.provider}/?url=${encodeURIComponent(url.toString())}&screenshot=true&meta=false&embed=screenshot.url`
-}
-
-export function decodeHtmlEntities(value: string) {
-  return value
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, String.fromCharCode(39))
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-}

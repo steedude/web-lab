@@ -9,12 +9,7 @@ export enum ApiErrorCode {
   InvalidUrl = 'INVALID_URL',
   PasswordTooLong = 'PASSWORD_TOO_LONG',
   PasswordTooShort = 'PASSWORD_TOO_SHORT',
-  PreviewFetchFailed = 'PREVIEW_FETCH_FAILED',
   RateLimited = 'RATE_LIMITED',
-  RedirectLimitExceeded = 'REDIRECT_LIMIT_EXCEEDED',
   StorageNotConfigured = 'STORAGE_NOT_CONFIGURED',
-  UnreadablePreview = 'UNREADABLE_PREVIEW',
-  UnsafeInternalUrl = 'UNSAFE_INTERNAL_URL',
   UnsupportedUrlProtocol = 'UNSUPPORTED_URL_PROTOCOL',
-  UrlContainsCredentials = 'URL_CONTAINS_CREDENTIALS',
 }

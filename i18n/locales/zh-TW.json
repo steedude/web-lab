@@ -43,7 +43,7 @@
     "links": {
       "index": "03",
       "title": "短網址與縮圖",
-      "description": "建立短連結、QR Code、分享預覽與網頁縮圖。",
+      "description": "建立短連結、QR Code 與有密碼保護的圖片分享頁。",
       "badge": "LIVE"
     }
   },
@@ -158,8 +158,6 @@
       "oneMonth": "30 天"
     },
     "actions": {
-      "loadingPreview": "讀取中…",
-      "getPreview": "取得截圖",
       "creating": "正在建立…",
       "createUrl": "建立短網址",
       "createImage": "建立圖片分享頁",
@@ -212,15 +210,10 @@
     "INVALID_URL": "請輸入有效網址。",
     "PASSWORD_TOO_LONG": "密碼最多 16 字。",
     "PASSWORD_TOO_SHORT": "密碼至少需要 4 個字元。",
-    "PREVIEW_FETCH_FAILED": "讀取預覽失敗。",
     "RATE_LIMITED": "建立太頻繁，請稍後再試。",
-    "REDIRECT_LIMIT_EXCEEDED": "這個網址重新導向次數過多。",
     "STORAGE_NOT_CONFIGURED": "Storage 尚未設定。",
-    "UNREADABLE_PREVIEW": "這個網址沒有可讀取的網頁資訊。",
-    "UNSAFE_INTERNAL_URL": "不可使用內部或私有網址。",
     "UNKNOWN_ERROR": "發生錯誤，請再試一次。",
-    "UNSUPPORTED_URL_PROTOCOL": "只支援 HTTP 或 HTTPS 網址。",
-    "URL_CONTAINS_CREDENTIALS": "網址不可包含帳號密碼。"
+    "UNSUPPORTED_URL_PROTOCOL": "只支援 HTTP 或 HTTPS 網址。"
   },
   "placeholder": {
     "experiment": "EXPERIMENT {index}",
