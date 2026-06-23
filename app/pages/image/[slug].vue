@@ -16,6 +16,8 @@ const localePath = useLocalePath()
 
 const needsPassword = computed(() => image.value?.status === 'password_required')
 const isResolved = computed(() => image.value?.status === 'resolved' && image.value.image_url)
+const isExpired = computed(() => image.value?.status === 'expired')
+const isNotFound = computed(() => image.value?.status === 'not_found')
 
 const passwordCount = computed(() => `${password.value.length}/${LINK_FORM_LIMITS.password}`)
 
@@ -123,6 +125,24 @@ onMounted(async () => {
           {{ submitting ? t('image.verifying') : t('image.viewImage') }}
         </button>
       </form>
+
+      <AppStatusCard
+        v-else-if="isExpired"
+        :action-label="t('image.backToLinks')"
+        :eyebrow="t('image.expiredEyebrow')"
+        :message="t('image.expiredDescription')"
+        :title="t('image.expiredTitle')"
+        :to="localePath('/links')"
+      />
+
+      <AppStatusCard
+        v-else-if="isNotFound"
+        :action-label="t('image.backToLinks')"
+        :eyebrow="t('image.notFoundEyebrow')"
+        :message="t('image.notFoundDescription')"
+        :title="t('image.notFoundTitle')"
+        :to="localePath('/links')"
+      />
 
       <div v-else class="grid min-h-[360px] place-items-center p-8 text-center">
         <div>

@@ -194,10 +194,29 @@
     "passwordPlaceholder": "Enter password",
     "verifying": "Verifying…",
     "viewImage": "View image",
+    "expiredEyebrow": "IMAGE EXPIRED",
+    "expiredTitle": "This image has expired",
+    "expiredDescription": "This image share page existed before, but its expiration time has passed.",
+    "notFoundEyebrow": "IMAGE NOT FOUND",
     "notFoundTitle": "Image not found",
-    "notFoundDescription": "This image link does not exist or has expired.",
+    "notFoundDescription": "This image link does not exist, or the code was typed incorrectly.",
     "errors": {
       "wrongPassword": "Password is incorrect. Please try again."
+    }
+  },
+  "status": {
+    "actions": {
+      "home": "Back to the lab"
+    },
+    "notFound": {
+      "eyebrow": "PAGE NOT FOUND",
+      "title": "There is no page here.",
+      "message": "The URL may be mistyped, or this experiment entry has moved."
+    },
+    "error": {
+      "eyebrow": "SYSTEM ERROR",
+      "title": "This page is temporarily unavailable.",
+      "message": "Something did not finish correctly. Please try again later."
     }
   },
   "errors": {

@@ -194,10 +194,29 @@
     "passwordPlaceholder": "輸入密碼",
     "verifying": "驗證中…",
     "viewImage": "查看圖片",
+    "expiredEyebrow": "IMAGE EXPIRED",
+    "expiredTitle": "這張圖片已過期",
+    "expiredDescription": "這個圖片分享頁曾經存在，但有效期限已經結束。",
+    "notFoundEyebrow": "IMAGE NOT FOUND",
     "notFoundTitle": "找不到圖片",
-    "notFoundDescription": "這個圖片連結不存在或已過期。",
+    "notFoundDescription": "這個圖片連結不存在，或代碼輸入錯誤。",
     "errors": {
       "wrongPassword": "密碼不正確，請再試一次。"
+    }
+  },
+  "status": {
+    "actions": {
+      "home": "回到實驗室"
+    },
+    "notFound": {
+      "eyebrow": "PAGE NOT FOUND",
+      "title": "這裡沒有這個頁面。",
+      "message": "可能是網址輸入錯誤，或這個實驗入口已經移動。"
+    },
+    "error": {
+      "eyebrow": "SYSTEM ERROR",
+      "title": "頁面暫時無法顯示。",
+      "message": "剛剛有個流程沒有順利完成，請稍後再試一次。"
     }
   },
   "errors": {
