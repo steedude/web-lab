@@ -1,4 +1,4 @@
-import type { DropChatItem, DropDataMessage, IncomingDropFile } from '~/types/drop.type'
+import type { DropChatItem, DropDataMessage, DropDebugStats, IncomingDropFile } from '~/types/drop.type'
 import type { RealtimeMessage } from '~/types/realtime.type'
 import { DROP_FILE_TRANSFER_CONFIG, DROP_RTC_CONFIG } from '~/configs/realtime.config'
 import { DropFileTransferStatus, DropMessageKind } from '~/types/drop.type'
@@ -10,11 +10,30 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   const messages = ref<DropChatItem[]>([])
   const connectionState = ref<RTCPeerConnectionState>('new')
   const channelState = ref<RTCDataChannelState>('closed')
+  const debugStats = ref<DropDebugStats>({
+    availableOutgoingBitrate: null,
+    bufferedAmount: 0,
+    bytesReceived: 0,
+    bytesSent: 0,
+    channelState: 'closed',
+    connectionState: 'new',
+    currentRoundTripTime: null,
+    localCandidateType: '',
+    packetsLost: 0,
+    packetsReceived: 0,
+    packetsSent: 0,
+    receiveBytesPerSecond: 0,
+    remoteCandidateType: '',
+    selectedCandidatePairState: '',
+    sendBytesPerSecond: 0,
+  })
 
   let peer: RTCPeerConnection | null = null
   let channel: RTCDataChannel | null = null
   let incomingFile: IncomingDropFile | null = null
   let lastProgressAt = 0
+  let statsTimer: ReturnType<typeof setInterval> | null = null
+  let lastStatsSnapshot = { bytesReceived: 0, bytesSent: 0, timestamp: 0 }
 
   const isReady = computed(() => channelState.value === 'open' && connectionState.value === 'connected')
 
@@ -138,12 +157,59 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     })
   }
 
+  async function updateDebugStats() {
+    if (!peer)
+      return
+
+    const report = await peer.getStats()
+    const stats = [...report.values()] as Array<Record<string, any>>
+    const selectedPair = stats.find(item => item.type === 'candidate-pair' && (item.selected || item.nominated || item.state === 'succeeded'))
+    const dataChannelStats = stats.find(item => item.type === 'data-channel')
+    const localCandidate = selectedPair?.localCandidateId ? report.get(selectedPair.localCandidateId) as Record<string, any> | undefined : undefined
+    const remoteCandidate = selectedPair?.remoteCandidateId ? report.get(selectedPair.remoteCandidateId) as Record<string, any> | undefined : undefined
+    const bytesSent = Number(dataChannelStats?.bytesSent ?? selectedPair?.bytesSent ?? debugStats.value.bytesSent)
+    const bytesReceived = Number(dataChannelStats?.bytesReceived ?? selectedPair?.bytesReceived ?? debugStats.value.bytesReceived)
+    const timestamp = Number(dataChannelStats?.timestamp ?? selectedPair?.timestamp ?? Date.now())
+    const elapsedSeconds = Math.max((timestamp - lastStatsSnapshot.timestamp) / 1000, 0.001)
+    const sendBytesPerSecond = lastStatsSnapshot.timestamp ? Math.max(0, (bytesSent - lastStatsSnapshot.bytesSent) / elapsedSeconds) : 0
+    const receiveBytesPerSecond = lastStatsSnapshot.timestamp ? Math.max(0, (bytesReceived - lastStatsSnapshot.bytesReceived) / elapsedSeconds) : 0
+
+    lastStatsSnapshot = { bytesReceived, bytesSent, timestamp }
+    debugStats.value = {
+      availableOutgoingBitrate: selectedPair?.availableOutgoingBitrate ?? null,
+      bufferedAmount: channel?.bufferedAmount ?? 0,
+      bytesReceived,
+      bytesSent,
+      channelState: channelState.value,
+      connectionState: connectionState.value,
+      currentRoundTripTime: selectedPair?.currentRoundTripTime ?? null,
+      localCandidateType: localCandidate?.candidateType || '',
+      packetsLost: Number(selectedPair?.packetsLost ?? 0),
+      packetsReceived: Number(selectedPair?.packetsReceived ?? 0),
+      packetsSent: Number(selectedPair?.packetsSent ?? 0),
+      receiveBytesPerSecond,
+      remoteCandidateType: remoteCandidate?.candidateType || '',
+      selectedCandidatePairState: selectedPair?.state || '',
+      sendBytesPerSecond,
+    }
+  }
+
+  function startDebugStats() {
+    if (statsTimer)
+      clearInterval(statsTimer)
+    lastStatsSnapshot = { bytesReceived: 0, bytesSent: 0, timestamp: 0 }
+    statsTimer = setInterval(() => {
+      updateDebugStats().catch(() => {})
+    }, 1000)
+  }
+
   function createPeer() {
     peer?.close()
     channel = null
     channelState.value = 'closed'
     peer = new RTCPeerConnection(DROP_RTC_CONFIG)
     connectionState.value = peer.connectionState
+    startDebugStats()
     peer.addEventListener('connectionstatechange', () => {
       connectionState.value = peer?.connectionState ?? 'closed'
     })
@@ -230,6 +296,8 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   }
 
   function cleanup() {
+    if (statsTimer)
+      clearInterval(statsTimer)
     peer?.close()
     messages.value.forEach((message) => {
       if (message.url)
@@ -246,6 +314,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
 
   return {
     isReady,
+    debugStats,
     messages,
     sendFile,
     sendText,

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import type { DropChatItem } from '~/types/drop.type'
+import type { DropChatItem, DropDebugStats } from '~/types/drop.type'
 import { DropFileTransferStatus, DropMessageKind } from '~/types/drop.type'
 import { formatBytes } from '~/utils/file.util'
 
 defineProps<{
+  debugStats: DropDebugStats
   isReady: boolean
   messages: DropChatItem[]
 }>()
@@ -31,6 +32,32 @@ function fileStatusLabel(message: DropChatItem) {
 function fileProgress(message: DropChatItem) {
   return message.progress ?? (message.status === DropFileTransferStatus.Complete ? 100 : 0)
 }
+
+function formatBitrate(bytesPerSecond: number) {
+  return `${formatBytes(bytesPerSecond)}/s`
+}
+
+function formatNullableBitrate(bitsPerSecond: number | null) {
+  return bitsPerSecond ? formatBitrate(bitsPerSecond / 8) : t('drop.debug.empty')
+}
+
+function formatRtt(seconds: number | null) {
+  return seconds === null ? t('drop.debug.empty') : `${Math.round(seconds * 1000)} ms`
+}
+
+function formatCandidatePair(stats: DropDebugStats) {
+  return t('drop.debug.candidatePair', {
+    local: stats.localCandidateType || t('drop.debug.empty'),
+    remote: stats.remoteCandidateType || t('drop.debug.empty'),
+  })
+}
+
+function formatPacketStats(stats: DropDebugStats) {
+  return t('drop.debug.packetStats', {
+    received: stats.packetsReceived,
+    sent: stats.packetsSent,
+  })
+}
 </script>
 
 <template>
@@ -45,6 +72,85 @@ function fileProgress(message: DropChatItem) {
       </div>
       <span class="hidden text-sm font-bold sm:block">{{ t('drop.dataChannel') }}</span>
     </header>
+    <details class="border-b-2 border-ink bg-paper px-5 py-3">
+      <summary class="cursor-pointer text-xs font-black tracking-[.16em]">
+        {{ t('drop.debug.title') }}
+      </summary>
+      <dl class="mt-3 grid gap-2 text-xs font-bold text-ink/70 sm:grid-cols-2">
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.connection') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ debugStats.connectionState }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.channel') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ debugStats.channelState }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.buffer') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatBytes(debugStats.bufferedAmount) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.rtt') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatRtt(debugStats.currentRoundTripTime) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.sendRate') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatBitrate(debugStats.sendBytesPerSecond) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.receiveRate') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatBitrate(debugStats.receiveBytesPerSecond) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.availableOutgoing') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatNullableBitrate(debugStats.availableOutgoingBitrate) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.candidate') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatCandidatePair(debugStats) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.packets') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatPacketStats(debugStats) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.lost') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ debugStats.packetsLost }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.bytesSent') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatBytes(debugStats.bytesSent) }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt>{{ t('drop.debug.bytesReceived') }}</dt>
+          <dd class="font-mono text-ink">
+            {{ formatBytes(debugStats.bytesReceived) }}
+          </dd>
+        </div>
+      </dl>
+    </details>
     <div class="flex-1 space-y-3 overflow-y-auto p-5">
       <div v-if="!messages.length" class="grid h-full min-h-72 place-items-center text-center text-ink/55">
         <div>

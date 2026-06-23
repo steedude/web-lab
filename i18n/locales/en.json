@@ -116,6 +116,24 @@
       "progressStats": "{received} / {total}",
       "speedStats": "・{speed}/s"
     },
+    "debug": {
+      "title": "Transfer debug info",
+      "connection": "Connection",
+      "channel": "Channel",
+      "buffer": "Buffer",
+      "rtt": "RTT",
+      "sendRate": "Send rate",
+      "receiveRate": "Receive rate",
+      "availableOutgoing": "Available upload",
+      "candidate": "Path",
+      "packets": "Packets",
+      "lost": "Lost",
+      "bytesSent": "Bytes sent",
+      "bytesReceived": "Bytes received",
+      "empty": "—",
+      "candidatePair": "{local} → {remote}",
+      "packetStats": "{sent} / {received}"
+    },
     "messagePlaceholder": "Type a message…",
     "actions": {
       "createRoom": "Create new room",

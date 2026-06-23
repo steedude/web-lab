@@ -116,6 +116,24 @@
       "progressStats": "{received} / {total}",
       "speedStats": "・{speed}/s"
     },
+    "debug": {
+      "title": "傳輸除錯資訊",
+      "connection": "連線",
+      "channel": "Channel",
+      "buffer": "Buffer",
+      "rtt": "RTT",
+      "sendRate": "送出速率",
+      "receiveRate": "接收速率",
+      "availableOutgoing": "可用上傳",
+      "candidate": "路徑",
+      "packets": "封包",
+      "lost": "遺失",
+      "bytesSent": "已送出",
+      "bytesReceived": "已接收",
+      "empty": "—",
+      "candidatePair": "{local} → {remote}",
+      "packetStats": "{sent} / {received}"
+    },
     "messagePlaceholder": "輸入訊息…",
     "actions": {
       "createRoom": "建立新房間",
