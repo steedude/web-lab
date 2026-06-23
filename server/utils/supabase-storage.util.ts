@@ -17,16 +17,21 @@ export function publicStorageUrl(path: string) {
 
 export async function uploadPublicImage(path: string, data: Uint8Array, contentType: string) {
   const { key, url } = storageCredentials()
-  await $fetch(`${url}/storage/v1/object/${LINK_CONFIG.storage.imageBucket}/${path}`, {
-    method: 'POST',
-    headers: {
-      'apikey': key,
-      'authorization': `Bearer ${key}`,
-      'cache-control': '31536000',
-      'content-type': contentType,
-      'x-upsert': 'false',
-    },
-    body: data,
-  })
+  try {
+    await $fetch(`${url}/storage/v1/object/${LINK_CONFIG.storage.imageBucket}/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': key,
+        'authorization': `Bearer ${key}`,
+        'cache-control': '31536000',
+        'content-type': contentType,
+        'x-upsert': 'false',
+      },
+      body: data,
+    })
+  }
+  catch {
+    throwApiError(502, ApiErrorCode.ImageUploadFailed)
+  }
   return publicStorageUrl(path)
 }

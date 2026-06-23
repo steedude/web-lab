@@ -23,7 +23,15 @@ function extensionFor(type: string) {
 
 export default defineEventHandler(async (event) => {
   const now = enforceCreateRateLimit(event)
-  const form = await readMultipartFormData(event)
+  let form: Awaited<ReturnType<typeof readMultipartFormData>>
+  try {
+    form = await readMultipartFormData(event)
+  }
+  catch (error: unknown) {
+    const statusCode = (error as { statusCode?: number })?.statusCode
+    throwApiError(statusCode === 413 ? 413 : 400, statusCode === 413 ? ApiErrorCode.RequestTooLarge : ApiErrorCode.CreateLinkFailed)
+  }
+
   const image = form?.find(item => item.name === 'image' && item.filename)
   if (!image?.data?.byteLength)
     throwApiError(400, ApiErrorCode.ImageRequired)

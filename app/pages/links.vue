@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CreatedLink } from '~/types/link.type'
 import QRCode from 'qrcode'
-import { LINK_FORM_LIMITS, LINK_QR_CONFIG, LinkExpiryDay } from '~/configs/link.config'
+import { LINK_FORM_LIMITS, LINK_IMAGE_UPLOAD_TYPES, LINK_QR_CONFIG, LinkExpiryDay } from '~/configs/link.config'
 import { LinkMode } from '~/types/link.type'
 import { getApiErrorMessage } from '~/utils/error.util'
 import { getPreviewImage, getWebsiteScreenshotUrl } from '~/utils/link.util'
@@ -49,6 +49,10 @@ function isValidHttpUrlInput(value: string) {
   }
 }
 
+function localApiError(code: string) {
+  return { data: { code } }
+}
+
 function clearImagePreview() {
   if (selectedImagePreview.value)
     URL.revokeObjectURL(selectedImagePreview.value)
@@ -80,7 +84,7 @@ function setMode(nextMode: LinkMode) {
 
 async function createUrlLink() {
   if (!isValidHttpUrlInput(url.value)) {
-    errorMessage.value = getApiErrorMessage({ data: { code: 'INVALID_URL' } }, t, 'errors.INVALID_URL')
+    errorMessage.value = getApiErrorMessage(localApiError('INVALID_URL'), t, 'errors.INVALID_URL')
     return
   }
 
@@ -97,6 +101,14 @@ async function createUrlLink() {
 async function createImageLink() {
   if (!selectedImage.value)
     return
+  if (!LINK_IMAGE_UPLOAD_TYPES.has(selectedImage.value.type)) {
+    errorMessage.value = getApiErrorMessage(localApiError('INVALID_IMAGE_TYPE'), t, 'errors.INVALID_IMAGE_TYPE')
+    return
+  }
+  if (selectedImage.value.size > LINK_FORM_LIMITS.imageBytes) {
+    errorMessage.value = getApiErrorMessage(localApiError('IMAGE_TOO_LARGE'), t, 'errors.IMAGE_TOO_LARGE')
+    return
+  }
 
   const body = new FormData()
   body.append('image', selectedImage.value)
@@ -135,6 +147,17 @@ function onImageChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0] || null
   clearImagePreview()
+  if (file && file.size > LINK_FORM_LIMITS.imageBytes) {
+    input.value = ''
+    errorMessage.value = getApiErrorMessage(localApiError('IMAGE_TOO_LARGE'), t, 'errors.IMAGE_TOO_LARGE')
+    return
+  }
+  if (file && !LINK_IMAGE_UPLOAD_TYPES.has(file.type)) {
+    input.value = ''
+    errorMessage.value = getApiErrorMessage(localApiError('INVALID_IMAGE_TYPE'), t, 'errors.INVALID_IMAGE_TYPE')
+    return
+  }
+
   selectedImage.value = file
   selectedImagePreview.value = file ? URL.createObjectURL(file) : ''
   created.value = null

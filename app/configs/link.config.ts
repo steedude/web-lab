@@ -23,9 +23,12 @@ export const LINK_QR_CONFIG = {
 
 export const LINK_FORM_LIMITS = {
   description: 50,
+  imageBytes: 5 * 1024 * 1024,
   password: 16,
   title: 20,
 } as const
+
+export const LINK_IMAGE_UPLOAD_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
 export const LINK_SCREENSHOT_CONFIG = {
   provider: 'https://api.microlink.io',
