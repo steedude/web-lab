@@ -108,6 +108,14 @@
     "dataChannel": "WebRTC DataChannel",
     "empty": "Send text or files here after connecting",
     "transfering": "Transferring",
+    "file": {
+      "receiving": "Receiving",
+      "sending": "Sending",
+      "ready": "Ready",
+      "sent": "Delivered",
+      "progressStats": "{received} / {total}",
+      "speedStats": "・{speed}/s"
+    },
     "messagePlaceholder": "Type a message…",
     "actions": {
       "createRoom": "Create new room",

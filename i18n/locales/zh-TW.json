@@ -108,6 +108,14 @@
     "dataChannel": "WebRTC DataChannel",
     "empty": "連線後，從這裡傳送文字或檔案",
     "transfering": "傳輸中",
+    "file": {
+      "receiving": "接收中",
+      "sending": "傳送中",
+      "ready": "可下載",
+      "sent": "已送達",
+      "progressStats": "{received} / {total}",
+      "speedStats": "・{speed}/s"
+    },
     "messagePlaceholder": "輸入訊息…",
     "actions": {
       "createRoom": "建立新房間",

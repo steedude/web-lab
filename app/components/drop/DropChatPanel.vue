@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { DropChatItem } from '~/types/drop.type'
-import { DropMessageKind } from '~/types/drop.type'
+import { DropFileTransferStatus, DropMessageKind } from '~/types/drop.type'
 import { formatBytes } from '~/utils/file.util'
 
 defineProps<{
   isReady: boolean
   messages: DropChatItem[]
-  transferProgress: number | null
 }>()
 
 defineEmits<{
@@ -18,6 +17,20 @@ const textInput = defineModel<string>('textInput', { required: true })
 
 const { t } = useI18n()
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
+
+function fileStatusLabel(message: DropChatItem) {
+  if (message.status === DropFileTransferStatus.Receiving)
+    return t('drop.file.receiving')
+  if (message.status === DropFileTransferStatus.Sending)
+    return t('drop.file.sending')
+  if (message.mine)
+    return t('drop.file.sent')
+  return t('drop.file.ready')
+}
+
+function fileProgress(message: DropChatItem) {
+  return message.progress ?? (message.status === DropFileTransferStatus.Complete ? 100 : 0)
+}
 </script>
 
 <template>
@@ -50,18 +63,32 @@ const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
           <p v-if="message.kind === DropMessageKind.Text" class="whitespace-pre-wrap break-words">
             {{ message.text }}
           </p>
-          <a v-else-if="message.url" :href="message.url" :download="message.name" class="focus-ring block font-black underline">{{ t('common.download') }} {{ message.name }}<small class="ml-2 font-normal">{{ formatBytes(message.size) }}</small></a>
-          <p v-else class="font-black">
-            {{ t('common.upload') }} {{ message.name }} <small class="font-normal">{{ formatBytes(message.size) }}</small>
-          </p>
+          <div v-else>
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <a v-if="message.url" :href="message.url" :download="message.name" class="focus-ring block break-words font-black underline">
+                  {{ message.name }}
+                </a>
+                <p v-else class="break-words font-black">
+                  {{ message.name }}
+                </p>
+                <p class="mt-1 text-xs font-bold text-ink/55">
+                  {{ t('drop.file.progressStats', { received: formatBytes(message.receivedBytes || 0), total: formatBytes(message.size || 0) }) }}
+                  <span v-if="message.speedBytesPerSecond">{{ t('drop.file.speedStats', { speed: formatBytes(message.speedBytesPerSecond) }) }}</span>
+                </p>
+              </div>
+              <span class="shrink-0 text-xs font-black text-ink/55">
+                {{ fileStatusLabel(message) }}
+              </span>
+            </div>
+            <div v-if="message.status !== DropFileTransferStatus.Complete" class="mt-3 h-2 border border-ink bg-white/60">
+              <div class="h-full bg-violet transition-all" :style="{ width: `${fileProgress(message)}%` }" />
+            </div>
+            <a v-if="message.url" :href="message.url" :download="message.name" class="focus-ring mt-3 inline-flex border-2 border-ink bg-white px-3 py-2 text-xs font-black">
+              {{ t('common.download') }}
+            </a>
+          </div>
         </div>
-      </div>
-    </div>
-    <div v-if="transferProgress !== null" class="border-t-2 border-ink px-5 py-3">
-      <div class="mb-1 flex justify-between text-xs font-black">
-        <span>{{ t('drop.transfering') }}</span><span>{{ transferProgress }}{{ t('common.percent') }}</span>
-      </div><div class="h-2 bg-ink/15">
-        <div class="h-full bg-violet transition-all" :style="{ width: `${transferProgress}%` }" />
       </div>
     </div>
     <form class="flex gap-2 border-t-2 border-ink p-3 sm:p-4" @submit.prevent="$emit('sendText')">
