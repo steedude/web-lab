@@ -17,7 +17,9 @@
     "previewIcon": "▧",
     "download": "↓",
     "upload": "↑",
-    "percent": "%"
+    "percent": "%",
+    "showPassword": "顯示",
+    "hidePassword": "隱藏"
   },
   "home": {
     "eyebrow": "FRONTEND EXPERIMENTS / 2026",

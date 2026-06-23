@@ -6,6 +6,7 @@ import { getApiErrorMessage } from '~/utils/error.util'
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || '').toLowerCase())
 const password = ref('')
+const showPassword = ref(false)
 const loading = ref(true)
 const submitting = ref(false)
 const errorMessage = ref('')
@@ -15,6 +16,8 @@ const localePath = useLocalePath()
 
 const needsPassword = computed(() => image.value?.status === 'password_required')
 const isResolved = computed(() => image.value?.status === 'resolved' && image.value.image_url)
+
+const passwordCount = computed(() => `${password.value.length}/${LINK_FORM_LIMITS.password}`)
 
 async function resolveImage(passwordAttempt = '') {
   errorMessage.value = ''
@@ -101,7 +104,18 @@ onMounted(async () => {
         <p class="mt-4 leading-7 text-ink/70">
           {{ t('image.protectedDescription') }}
         </p>
-        <input v-model="password" type="password" required :maxlength="LINK_FORM_LIMITS.password" autocomplete="current-password" :placeholder="t('image.passwordPlaceholder')" class="focus-ring mt-6 w-full border-2 border-ink bg-paper px-4 py-4">
+        <label class="mt-6 block text-sm font-black">
+          <span class="flex items-center justify-between gap-3">
+            <span>{{ t('links.fields.password') }}</span>
+            <span class="text-xs text-ink/45">{{ passwordCount }}</span>
+          </span>
+          <span class="mt-2 flex border-2 border-ink bg-paper">
+            <input v-model="password" :type="showPassword ? 'text' : 'password'" required :maxlength="LINK_FORM_LIMITS.password" autocomplete="current-password" :placeholder="t('image.passwordPlaceholder')" class="focus-ring min-w-0 flex-1 bg-transparent px-4 py-4 outline-none">
+            <button type="button" class="border-l-2 border-ink px-3 text-xs font-black" :aria-label="showPassword ? t('common.hidePassword') : t('common.showPassword')" @click="showPassword = !showPassword">
+              {{ showPassword ? t('common.hidePassword') : t('common.showPassword') }}
+            </button>
+          </span>
+        </label>
         <p v-if="errorMessage" class="mt-4 border-l-4 border-coral bg-coral/15 px-4 py-3 text-sm font-bold">
           {{ errorMessage }}
         </p>

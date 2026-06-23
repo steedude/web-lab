@@ -10,6 +10,7 @@ type LinkMode = 'url' | 'image'
 const mode = ref<LinkMode>('url')
 const url = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const imageTitle = ref('')
 const imageDescription = ref('')
 const selectedImage = ref<File | null>(null)
@@ -32,6 +33,10 @@ const canCreate = computed(() => mode.value === 'url' ? Boolean(url.value.trim()
 
 function limitText(value: string, maxLength: number) {
   return value.trim().slice(0, maxLength)
+}
+
+function characterCount(value: string, maxLength: number) {
+  return `${value.length}/${maxLength}`
 }
 
 function isLikelyUrlInput(value: string) {
@@ -57,6 +62,7 @@ function clearImagePreview() {
 function resetForm() {
   url.value = ''
   password.value = ''
+  showPassword.value = false
   imageTitle.value = ''
   imageDescription.value = ''
   expiresInDays.value = LinkExpiryDay.Forever
@@ -230,10 +236,18 @@ onBeforeUnmount(clearImagePreview)
               {{ t('links.hints.imageTypes') }}
             </p>
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
-              <label class="text-sm font-black">{{ t('links.fields.imageTitle') }}
+              <label class="text-sm font-black">
+                <span class="flex items-center justify-between gap-3">
+                  <span>{{ t('links.fields.imageTitle') }}</span>
+                  <span class="text-xs text-ink/45">{{ characterCount(imageTitle, LINK_FORM_LIMITS.title) }}</span>
+                </span>
                 <input v-model="imageTitle" type="text" :maxlength="LINK_FORM_LIMITS.title" placeholder="My image" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
               </label>
-              <label class="text-sm font-black">{{ t('links.fields.imageDescription') }}
+              <label class="text-sm font-black">
+                <span class="flex items-center justify-between gap-3">
+                  <span>{{ t('links.fields.imageDescription') }}</span>
+                  <span class="text-xs text-ink/45">{{ characterCount(imageDescription, LINK_FORM_LIMITS.description) }}</span>
+                </span>
                 <input v-model="imageDescription" type="text" :maxlength="LINK_FORM_LIMITS.description" :placeholder="t('links.placeholders.imageDescription')" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
               </label>
             </div>
@@ -247,8 +261,17 @@ onBeforeUnmount(clearImagePreview)
                 </option>
               </select>
             </label>
-            <label class="text-sm font-black">{{ t('links.fields.password') }}
-              <input v-model="password" type="password" :maxlength="LINK_FORM_LIMITS.password" autocomplete="new-password" :placeholder="t('links.placeholders.password')" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-3">
+            <label class="text-sm font-black">
+              <span class="flex items-center justify-between gap-3">
+                <span>{{ t('links.fields.password') }}</span>
+                <span class="text-xs text-ink/45">{{ characterCount(password, LINK_FORM_LIMITS.password) }}</span>
+              </span>
+              <span class="mt-2 flex border-2 border-ink bg-paper">
+                <input v-model="password" :type="showPassword ? 'text' : 'password'" :maxlength="LINK_FORM_LIMITS.password" autocomplete="new-password" :placeholder="t('links.placeholders.password')" class="focus-ring min-w-0 flex-1 bg-transparent px-4 py-3 outline-none">
+                <button type="button" class="border-l-2 border-ink px-3 text-xs font-black" :aria-label="showPassword ? t('common.hidePassword') : t('common.showPassword')" @click="showPassword = !showPassword">
+                  {{ showPassword ? t('common.hidePassword') : t('common.showPassword') }}
+                </button>
+              </span>
             </label>
           </div>
 
