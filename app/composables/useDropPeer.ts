@@ -15,6 +15,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   let peer: RTCPeerConnection | null = null
   let channel: RTCDataChannel | null = null
   let incomingFile: IncomingDropFile | null = null
+  let lastProgressAt = 0
 
   const isReady = computed(() => channelState.value === 'open' && connectionState.value === 'connected')
 
@@ -34,6 +35,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     if (!incomingFile)
       return
 
+    transferProgress.value = 100
     const blob = new Blob(incomingFile.chunks, { type: incomingFile.type })
     addFile({
       name: incomingFile.name,
@@ -44,12 +46,22 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     transferProgress.value = null
   }
 
+  function updateTransferProgress(doneBytes: number, totalBytes: number, force = false) {
+    const now = Date.now()
+    if (!force && now - lastProgressAt < DROP_FILE_TRANSFER_CONFIG.progressIntervalMs)
+      return
+
+    lastProgressAt = now
+    transferProgress.value = Math.min(100, Math.round((doneBytes / totalBytes) * 100))
+  }
+
   function handleDataMessage(data: DropDataMessage) {
     if (data.kind === DropMessageKind.Text && data.text) {
       addText(data.text, false)
     }
     else if (data.kind === DropMessageKind.FileStart && data.name && data.size !== undefined) {
       incomingFile = { chunks: [], name: data.name, received: 0, size: data.size, type: data.type || 'application/octet-stream' }
+      lastProgressAt = 0
       transferProgress.value = 0
     }
     else if (data.kind === DropMessageKind.FileEnd) {
@@ -85,7 +97,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       const chunk = event.data as ArrayBuffer
       incomingFile.chunks.push(chunk)
       incomingFile.received += chunk.byteLength
-      transferProgress.value = Math.min(100, Math.round((incomingFile.received / incomingFile.size) * 100))
+      updateTransferProgress(incomingFile.received, incomingFile.size)
     })
   }
 
@@ -161,13 +173,15 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
 
     channel.send(JSON.stringify({ kind: DropMessageKind.FileStart, name: file.name, size: file.size, type: file.type }))
     const chunkSize = DROP_FILE_TRANSFER_CONFIG.chunkSize
+    lastProgressAt = 0
     transferProgress.value = 0
     for (let offset = 0; offset < file.size; offset += chunkSize) {
       const nextOffset = Math.min(offset + chunkSize, file.size)
       channel.send(await file.slice(offset, nextOffset).arrayBuffer())
-      transferProgress.value = Math.min(100, Math.round((nextOffset / file.size) * 100))
+      updateTransferProgress(nextOffset, file.size)
       await waitForBuffer()
     }
+    updateTransferProgress(file.size, file.size, true)
     channel.send(JSON.stringify({ kind: DropMessageKind.FileEnd }))
     addFile({ name: file.name, size: file.size }, true)
     transferProgress.value = null

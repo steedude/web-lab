@@ -28,11 +28,12 @@ export const DROP_QR_CONFIG = {
 } as const
 
 export const DROP_FILE_TRANSFER_CONFIG = {
-  // Keep each DataChannel message Safari-friendly, but allow enough queued bytes for decent throughput.
-  bufferLowThreshold: 1 * 1024 * 1024,
-  chunkSize: 64 * 1024,
-  maxBufferedAmount: 4 * 1024 * 1024,
+  // Keep each DataChannel message mobile-browser friendly, but avoid tiny chunks that create too many events.
+  bufferLowThreshold: 2 * 1024 * 1024,
+  chunkSize: 128 * 1024,
+  maxBufferedAmount: 8 * 1024 * 1024,
   maxFileSize: 50 * 1024 * 1024,
+  progressIntervalMs: 120,
 } as const
 
 export const DROP_RTC_CONFIG = {
