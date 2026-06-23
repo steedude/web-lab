@@ -1,6 +1,6 @@
 import type { DropChatItem, DropDataMessage, DropDebugStats, IncomingDropFile, OutgoingDropFileProgress } from '~/types/drop.type'
 import type { RealtimeMessage } from '~/types/realtime.type'
-import { DROP_FILE_TRANSFER_CONFIG, DROP_RTC_CONFIG } from '~/configs/realtime.config'
+import { DROP_CHANNEL_CONFIG, DROP_FILE_TRANSFER_CONFIG, DROP_RTC_CONFIG } from '~/configs/realtime.config'
 import { DropFileTransferStatus, DropMessageKind } from '~/types/drop.type'
 import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
 
@@ -29,7 +29,8 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   })
 
   let peer: RTCPeerConnection | null = null
-  let channel: RTCDataChannel | null = null
+  let controlChannel: RTCDataChannel | null = null
+  let fileChannel: RTCDataChannel | null = null
   let incomingFile: IncomingDropFile | null = null
   let lastProgressAt = 0
   let statsTimer: ReturnType<typeof setInterval> | null = null
@@ -57,8 +58,8 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   }
 
   function sendControlMessage(data: DropDataMessage) {
-    if (channel?.readyState === 'open')
-      channel.send(JSON.stringify(data))
+    if (controlChannel?.readyState === 'open')
+      controlChannel.send(JSON.stringify(data))
   }
 
   function finishIncomingFile() {
@@ -136,31 +137,52 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     }
   }
 
-  function setupChannel(nextChannel: RTCDataChannel) {
-    channel = nextChannel
-    channelState.value = nextChannel.readyState
-    channel.binaryType = 'arraybuffer'
-    channel.bufferedAmountLowThreshold = DROP_FILE_TRANSFER_CONFIG.bufferLowThreshold
+  function updateChannelState() {
+    const controlState = controlChannel?.readyState ?? 'closed'
+    const fileState = fileChannel?.readyState ?? 'closed'
 
-    const updateChannelState = () => {
-      channelState.value = nextChannel.readyState
+    if (controlState === 'open' && fileState === 'open') {
+      channelState.value = 'open'
+      return
     }
 
-    channel.addEventListener('open', updateChannelState)
-    channel.addEventListener('close', updateChannelState)
-    channel.addEventListener('error', updateChannelState)
+    if (controlState === 'connecting' || fileState === 'connecting') {
+      channelState.value = 'connecting'
+      return
+    }
 
-    channel.addEventListener('open', () => addSystem(t('drop.system.connected')))
-    channel.addEventListener('close', () => addSystem(t('drop.system.offline')))
-    channel.addEventListener('message', (event) => {
+    channelState.value = controlState === 'closing' || fileState === 'closing' ? 'closing' : 'closed'
+  }
+
+  function setupControlChannel(nextChannel: RTCDataChannel) {
+    controlChannel = nextChannel
+    updateChannelState()
+
+    controlChannel.addEventListener('open', updateChannelState)
+    controlChannel.addEventListener('close', updateChannelState)
+    controlChannel.addEventListener('error', updateChannelState)
+
+    controlChannel.addEventListener('open', () => addSystem(t('drop.system.connected')))
+    controlChannel.addEventListener('close', () => addSystem(t('drop.system.offline')))
+    controlChannel.addEventListener('message', (event) => {
       if (typeof event.data === 'string') {
         handleDataMessage(JSON.parse(event.data) as DropDataMessage)
-        return
       }
+    })
+  }
 
-      if (!incomingFile)
+  function setupFileChannel(nextChannel: RTCDataChannel) {
+    fileChannel = nextChannel
+    fileChannel.binaryType = 'arraybuffer'
+    fileChannel.bufferedAmountLowThreshold = DROP_FILE_TRANSFER_CONFIG.bufferLowThreshold
+    updateChannelState()
+
+    fileChannel.addEventListener('open', updateChannelState)
+    fileChannel.addEventListener('close', updateChannelState)
+    fileChannel.addEventListener('error', updateChannelState)
+    fileChannel.addEventListener('message', (event) => {
+      if (!incomingFile || typeof event.data === 'string')
         return
-
       const chunk = event.data as ArrayBuffer
       incomingFile.chunks.push(chunk)
       incomingFile.received += chunk.byteLength
@@ -175,12 +197,15 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     const report = await peer.getStats()
     const stats = [...report.values()] as Array<Record<string, any>>
     const selectedPair = stats.find(item => item.type === 'candidate-pair' && (item.selected || item.nominated || item.state === 'succeeded'))
-    const dataChannelStats = stats.find(item => item.type === 'data-channel')
+    const dataChannelStats = stats.filter(item => item.type === 'data-channel')
     const localCandidate = selectedPair?.localCandidateId ? report.get(selectedPair.localCandidateId) as Record<string, any> | undefined : undefined
     const remoteCandidate = selectedPair?.remoteCandidateId ? report.get(selectedPair.remoteCandidateId) as Record<string, any> | undefined : undefined
-    const bytesSent = Number(dataChannelStats?.bytesSent ?? selectedPair?.bytesSent ?? debugStats.value.bytesSent)
-    const bytesReceived = Number(dataChannelStats?.bytesReceived ?? selectedPair?.bytesReceived ?? debugStats.value.bytesReceived)
-    const timestamp = Number(dataChannelStats?.timestamp ?? selectedPair?.timestamp ?? Date.now())
+    const dataChannelBytesSent = dataChannelStats.reduce((sum, item) => sum + Number(item.bytesSent ?? 0), 0)
+    const dataChannelBytesReceived = dataChannelStats.reduce((sum, item) => sum + Number(item.bytesReceived ?? 0), 0)
+    const dataChannelTimestamp = dataChannelStats.reduce((latest, item) => Math.max(latest, Number(item.timestamp ?? 0)), 0)
+    const bytesSent = Number(dataChannelStats.length ? dataChannelBytesSent : (selectedPair?.bytesSent ?? debugStats.value.bytesSent))
+    const bytesReceived = Number(dataChannelStats.length ? dataChannelBytesReceived : (selectedPair?.bytesReceived ?? debugStats.value.bytesReceived))
+    const timestamp = Number(dataChannelTimestamp || selectedPair?.timestamp || Date.now())
     const elapsedSeconds = Math.max((timestamp - lastStatsSnapshot.timestamp) / 1000, 0.001)
     const sendBytesPerSecond = lastStatsSnapshot.timestamp ? Math.max(0, (bytesSent - lastStatsSnapshot.bytesSent) / elapsedSeconds) : 0
     const receiveBytesPerSecond = lastStatsSnapshot.timestamp ? Math.max(0, (bytesReceived - lastStatsSnapshot.bytesReceived) / elapsedSeconds) : 0
@@ -188,7 +213,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     lastStatsSnapshot = { bytesReceived, bytesSent, timestamp }
     debugStats.value = {
       availableOutgoingBitrate: selectedPair?.availableOutgoingBitrate ?? null,
-      bufferedAmount: channel?.bufferedAmount ?? 0,
+      bufferedAmount: (controlChannel?.bufferedAmount ?? 0) + (fileChannel?.bufferedAmount ?? 0),
       bytesReceived,
       bytesSent,
       channelState: channelState.value,
@@ -216,7 +241,8 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
 
   function createPeer() {
     peer?.close()
-    channel = null
+    controlChannel = null
+    fileChannel = null
     channelState.value = 'closed'
     peer = new RTCPeerConnection(DROP_RTC_CONFIG)
     connectionState.value = peer.connectionState
@@ -228,13 +254,19 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       if (event.candidate)
         room.send(RealtimeMessageType.SignalIce, { candidate: event.candidate.toJSON() })
     })
-    peer.addEventListener('datachannel', event => setupChannel(event.channel))
+    peer.addEventListener('datachannel', (event) => {
+      if (event.channel.label === DROP_CHANNEL_CONFIG.fileLabel)
+        setupFileChannel(event.channel)
+      else
+        setupControlChannel(event.channel)
+    })
     return peer
   }
 
   async function createOffer() {
     const pc = createPeer()
-    setupChannel(pc.createDataChannel('drop', { ordered: true }))
+    setupControlChannel(pc.createDataChannel(DROP_CHANNEL_CONFIG.controlLabel, { ordered: true }))
+    setupFileChannel(pc.createDataChannel(DROP_CHANNEL_CONFIG.fileLabel, { ordered: true }))
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
     room.send(RealtimeMessageType.SignalOffer, { sdp: offer })
@@ -261,24 +293,20 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
 
   function sendText(text: string) {
     const trimmed = text.trim()
-    if (!trimmed || channel?.readyState !== 'open')
+    if (!trimmed || controlChannel?.readyState !== 'open')
       return false
 
-    channel.send(JSON.stringify({ kind: DropMessageKind.Text, text: trimmed }))
+    controlChannel.send(JSON.stringify({ kind: DropMessageKind.Text, text: trimmed }))
     addText(trimmed, true)
     return true
   }
 
-  function waitForBuffer() {
-    if (!channel || channel.bufferedAmount < DROP_FILE_TRANSFER_CONFIG.maxBufferedAmount)
+  function waitForBuffer(targetChannel: RTCDataChannel | null) {
+    if (!targetChannel || targetChannel.bufferedAmount < DROP_FILE_TRANSFER_CONFIG.maxBufferedAmount)
       return Promise.resolve()
 
     return new Promise<void>((resolve) => {
-      const activeChannel = channel
-      if (!activeChannel) {
-        resolve()
-        return
-      }
+      const activeChannel = targetChannel
 
       let settled = false
       let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -315,7 +343,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   }
 
   async function sendFile(file: File) {
-    if (!channel || channel.readyState !== 'open' || file.size > DROP_FILE_TRANSFER_CONFIG.maxFileSize)
+    if (!controlChannel || !fileChannel || controlChannel.readyState !== 'open' || fileChannel.readyState !== 'open' || file.size > DROP_FILE_TRANSFER_CONFIG.maxFileSize)
       return
 
     const id = crypto.randomUUID()
@@ -328,15 +356,15 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       speedBytesPerSecond: 0,
       status: DropFileTransferStatus.Sending,
     }, true)
-    channel.send(JSON.stringify({ id, kind: DropMessageKind.FileStart, name: file.name, size: file.size, type: file.type }))
+    controlChannel.send(JSON.stringify({ id, kind: DropMessageKind.FileStart, name: file.name, size: file.size, type: file.type }))
     const chunkSize = DROP_FILE_TRANSFER_CONFIG.chunkSize
     lastProgressAt = 0
     for (let offset = 0; offset < file.size; offset += chunkSize) {
       const nextOffset = Math.min(offset + chunkSize, file.size)
-      channel.send(await file.slice(offset, nextOffset).arrayBuffer())
-      await waitForBuffer()
+      fileChannel.send(await file.slice(offset, nextOffset).arrayBuffer())
+      await waitForBuffer(fileChannel)
     }
-    channel.send(JSON.stringify({ kind: DropMessageKind.FileEnd }))
+    controlChannel.send(JSON.stringify({ kind: DropMessageKind.FileEnd }))
   }
 
   function cleanup() {

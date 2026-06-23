@@ -39,6 +39,11 @@ export const DROP_FILE_TRANSFER_CONFIG = {
   progressIntervalMs: 200,
 } as const
 
+export const DROP_CHANNEL_CONFIG = {
+  controlLabel: 'drop-control',
+  fileLabel: 'drop-file',
+} as const
+
 export const DROP_RTC_CONFIG = {
   // A public STUN server is enough for this demo because file bytes move through WebRTC DataChannel,
   // while the VM-hosted WebSocket server only exchanges room and signaling messages.
