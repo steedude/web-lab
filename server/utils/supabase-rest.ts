@@ -1,8 +1,12 @@
 interface ShortLinkRow {
   clicks: number
   created_at: string
+  description: string | null
   expires_at: string | null
+  favicon_url: string | null
   id: string
+  image_url: string | null
+  screenshot_url: string | null
   slug: string
   target_url: string
   title: string | null
@@ -16,13 +20,16 @@ function credentials() {
   return { key, url: config.public.supabaseUrl }
 }
 
-export async function insertShortLink(row: Pick<ShortLinkRow, 'expires_at' | 'slug' | 'target_url' | 'title'>) {
+export type NewShortLink = Pick<ShortLinkRow, 'description' | 'expires_at' | 'favicon_url' | 'image_url' | 'screenshot_url' | 'slug' | 'target_url' | 'title'>
+
+export async function insertShortLink(row: NewShortLink) {
   const { key, url } = credentials()
-  return await $fetch<ShortLinkRow[]>(`${url}/rest/v1/short_links`, {
+  await $fetch(`${url}/rest/v1/short_links`, {
     method: 'POST',
-    headers: { apikey: key, authorization: `Bearer ${key}`, prefer: 'return=representation' },
+    headers: { apikey: key, authorization: `Bearer ${key}`, prefer: 'return=minimal' },
     body: row,
   })
+  return row
 }
 
 export async function resolveShortLink(slug: string) {

@@ -2,7 +2,17 @@
 import QRCode from 'qrcode'
 
 interface Preview { description: string, favicon: string, image: string | null, screenshot: string, title: string, url: string }
-interface CreatedLink { expires_at: string | null, shortUrl: string, slug: string, target_url: string, title: string | null }
+interface CreatedLink {
+  description: string | null
+  expires_at: string | null
+  favicon_url: string | null
+  image_url: string | null
+  screenshot_url: string | null
+  shortUrl: string
+  slug: string
+  target_url: string
+  title: string | null
+}
 
 const url = ref('')
 const alias = ref('')
@@ -15,6 +25,7 @@ const creating = ref(false)
 const errorMessage = ref('')
 const copied = ref(false)
 const previewHostname = computed(() => preview.value ? new URL(preview.value.url).hostname : '')
+const createdHostname = computed(() => created.value ? new URL(created.value.target_url).hostname : '')
 
 async function loadPreview() {
   if (!url.value.trim())
@@ -45,7 +56,16 @@ async function createLink() {
   try {
     created.value = await $fetch<CreatedLink>('/api/links', {
       method: 'POST',
-      body: { alias: alias.value || undefined, expiresInDays: expiresInDays.value, title: preview.value.title, url: preview.value.url },
+      body: {
+        alias: alias.value || undefined,
+        description: preview.value.description,
+        expiresInDays: expiresInDays.value,
+        favicon: preview.value.favicon,
+        image: preview.value.image,
+        screenshot: preview.value.screenshot,
+        title: preview.value.title,
+        url: preview.value.url,
+      },
     })
     qrCode.value = await QRCode.toDataURL(created.value.shortUrl, { margin: 1, width: 360, color: { dark: '#171714', light: '#ffffff' } })
   }
@@ -100,6 +120,19 @@ async function copyShortUrl() {
         <div v-if="created" class="border-2 border-ink bg-acid p-5 shadow-[8px_8px_0_#171714] sm:p-7">
           <p class="text-xs font-black tracking-[.2em]">YOUR SHORT LINK</p>
           <a :href="created.shortUrl" target="_blank" class="focus-ring mt-3 block break-all text-3xl font-black underline sm:text-4xl">{{ created.shortUrl }}</a>
+          <div class="mt-5 overflow-hidden border-2 border-ink bg-white">
+            <div class="aspect-[1200/630] overflow-hidden border-b-2 border-ink bg-violet/20">
+              <img :src="created.image_url || created.screenshot_url || ''" :alt="created.title || created.target_url" class="h-full w-full object-cover">
+            </div>
+            <div class="p-4">
+              <div class="flex items-center gap-2 text-xs font-bold text-ink/55">
+                <img v-if="created.favicon_url" :src="created.favicon_url" alt="" class="size-5" @error="($event.target as HTMLImageElement).style.display = 'none'">
+                <span>{{ createdHostname }}</span>
+              </div>
+              <h2 class="mt-2 text-xl font-black">{{ created.title || created.target_url }}</h2>
+              <p v-if="created.description" class="mt-2 text-sm leading-6 text-ink/70">{{ created.description }}</p>
+            </div>
+          </div>
           <div class="mt-6 grid items-center gap-5 sm:grid-cols-[170px_1fr]">
             <img :src="qrCode" alt="短網址 QR Code" class="w-full border-2 border-ink bg-white p-2">
             <div><p class="break-all text-sm">前往：{{ created.target_url }}</p><button class="focus-ring mt-4 border-2 border-ink bg-white px-5 py-3 font-black" @click="copyShortUrl">{{ copied ? '已複製！' : '複製短網址' }}</button></div>
