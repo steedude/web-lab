@@ -2,10 +2,12 @@
 import QRCode from 'qrcode'
 import { REMOTE_QR_CONFIG } from '~/configs/realtime.config'
 import { RealtimeRole, RealtimeStatus } from '~/types/realtime.type'
-import { createRoomCode } from '~/utils/realtime.util'
+import { createRoomCode, isRoomCode, normalizeRoomCode } from '~/utils/realtime.util'
 
 const { locale, t } = useI18n()
 const localePath = useLocalePath()
+const route = useRoute()
+const router = useRouter()
 const roomId = ref('')
 const phoneUrl = ref('')
 const qrCode = ref('')
@@ -29,11 +31,30 @@ async function copyPhoneUrl() {
   setTimeout(() => copied.value = false, 1600)
 }
 
-onMounted(async () => {
-  roomId.value = createRoomCode()
+async function prepareRoom(code?: string) {
+  const normalized = normalizeRoomCode(code || createRoomCode())
+  if (!isRoomCode(normalized))
+    return
+
+  roomId.value = normalized
   const localePrefix = locale.value === 'en' ? '/en' : ''
-  phoneUrl.value = `${window.location.origin}${localePrefix}/remote/control/${roomId.value}`
+  phoneUrl.value = `${window.location.origin}${localePrefix}/remote/control/${normalized}`
   qrCode.value = await QRCode.toDataURL(phoneUrl.value, REMOTE_QR_CONFIG)
+
+  if (route.query.room !== normalized) {
+    await router.replace({
+      query: {
+        ...route.query,
+        room: normalized,
+      },
+    })
+  }
+}
+
+onMounted(() => {
+  const queryRoom = typeof route.query.room === 'string' ? route.query.room : ''
+  const normalizedQueryRoom = normalizeRoomCode(queryRoom)
+  prepareRoom(isRoomCode(normalizedQueryRoom) ? normalizedQueryRoom : undefined)
 })
 
 useSeoMeta({
