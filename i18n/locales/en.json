@@ -92,7 +92,6 @@
       "corn": "Corn"
     },
     "game": {
-      "round": "ROUND {round}",
       "drawTitle": "Your turn to draw",
       "guessTitle": "Guess the drawing",
       "yourTurn": "Your turn",

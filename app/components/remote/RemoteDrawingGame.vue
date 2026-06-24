@@ -11,7 +11,6 @@ import type {
 } from '~/types/remote.type'
 import { REMOTE_DRAWING_PROMPTS, REMOTE_GAME_CONFIG } from '~/configs/remote.config'
 import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
-import { RemoteRoundStatus } from '~/types/remote.type'
 
 const props = defineProps<{
   latestMessage: RealtimeMessage | null
@@ -26,10 +25,9 @@ const { t } = useI18n()
 const state = ref<RemoteGameState>({
   drawerRole: props.role,
   promptIndex: REMOTE_GAME_CONFIG.initialPromptIndex,
-  round: 1,
-  status: RemoteRoundStatus.Drawing,
 })
 const strokes = ref<RemoteDrawStroke[]>([])
+const boardVersion = ref(0)
 const guess = ref('')
 const lastResult = ref('')
 
@@ -58,23 +56,19 @@ function sendState() {
 function resetBoard() {
   strokes.value = []
   guess.value = ''
+  boardVersion.value += 1
 }
 
-function nextRound(status: RemoteRoundStatus) {
-  lastResult.value = status === RemoteRoundStatus.Solved
+function nextTurn(solved: boolean) {
+  lastResult.value = solved
     ? t('remote.game.correctResult', { answer: answer.value })
     : t('remote.game.skipResult', { answer: answer.value })
 
   state.value = {
     drawerRole: state.value.drawerRole === props.role ? getPeerRole() : props.role,
     promptIndex: (state.value.promptIndex + 1) % REMOTE_DRAWING_PROMPTS.length,
-    round: state.value.round + 1,
-    status,
   }
   resetBoard()
-  sendState()
-
-  state.value.status = RemoteRoundStatus.Drawing
   sendState()
 }
 
@@ -87,7 +81,7 @@ function handleStroke(stroke: RemoteDrawStroke) {
     return
 
   strokes.value.push(stroke)
-  props.send(RealtimeMessageType.RemoteDraw, { round: state.value.round, stroke })
+  props.send(RealtimeMessageType.RemoteDraw, { stroke })
 }
 
 function removeStroke(strokeId: string) {
@@ -103,14 +97,14 @@ function undoLastStroke() {
     return
 
   removeStroke(strokeId)
-  props.send(RealtimeMessageType.RemoteUndo, { round: state.value.round, strokeId })
+  props.send(RealtimeMessageType.RemoteUndo, { strokeId })
 }
 
 function submitGuess() {
   if (!canGuess.value || !guess.value.trim())
     return
 
-  props.send(RealtimeMessageType.RemoteGuess, { guess: guess.value, round: state.value.round })
+  props.send(RealtimeMessageType.RemoteGuess, { guess: guess.value })
   guess.value = ''
 }
 
@@ -118,8 +112,8 @@ function giveUp() {
   if (!canInteract.value)
     return
 
-  props.send(RealtimeMessageType.RemoteGiveUp, { round: state.value.round })
-  nextRound(RemoteRoundStatus.Skipped)
+  props.send(RealtimeMessageType.RemoteGiveUp, {})
+  nextTurn(false)
 }
 
 function applyRemoteState(payload: RemoteGameStatePayload) {
@@ -128,28 +122,23 @@ function applyRemoteState(payload: RemoteGameStatePayload) {
 }
 
 function applyRemoteStroke(payload: RemoteDrawPayload) {
-  if (payload.round !== state.value.round)
-    return
-
   strokes.value.push(payload.stroke)
 }
 
 function applyRemoteGuess(payload: RemoteGuessPayload) {
-  if (!isDrawer.value || payload.round !== state.value.round)
+  if (!isDrawer.value)
     return
 
   if (isCorrectGuess(payload.guess))
-    nextRound(RemoteRoundStatus.Solved)
+    nextTurn(true)
 }
 
-function applyRemoteGiveUp(payload: RemoteGiveUpPayload) {
-  if (payload.round === state.value.round)
-    nextRound(RemoteRoundStatus.Skipped)
+function applyRemoteGiveUp(_payload: RemoteGiveUpPayload) {
+  nextTurn(false)
 }
 
 function applyRemoteUndo(payload: RemoteUndoPayload) {
-  if (payload.round === state.value.round)
-    removeStroke(payload.strokeId)
+  removeStroke(payload.strokeId)
 }
 
 watch(() => props.latestMessage, (message) => {
@@ -179,9 +168,6 @@ watch(() => props.peerConnected, (connected) => {
     <div class="overflow-hidden border-2 border-ink bg-white shadow-[8px_8px_0_#171714]">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-ink px-5 py-4">
         <div>
-          <p class="font-mono text-xs font-black tracking-[0.25em]">
-            {{ t('remote.game.round', { round: state.round }) }}
-          </p>
           <h2 class="mt-1 text-2xl font-black">
             {{ isDrawer ? t('remote.game.drawTitle') : t('remote.game.guessTitle') }}
           </h2>
@@ -204,7 +190,7 @@ watch(() => props.peerConnected, (connected) => {
       </div>
 
       <div class="h-[min(62vh,34rem)] min-h-[22rem]">
-        <RemoteDrawingCanvas :disabled="!canDraw" :reset-key="state.round" :strokes="strokes" @stroke="handleStroke" />
+        <RemoteDrawingCanvas :disabled="!canDraw" :reset-key="boardVersion" :strokes="strokes" @stroke="handleStroke" />
       </div>
     </div>
 

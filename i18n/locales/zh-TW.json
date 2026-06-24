@@ -92,7 +92,6 @@
       "corn": "玉米"
     },
     "game": {
-      "round": "第 {round} 回合",
       "drawTitle": "輪到你畫",
       "guessTitle": "猜猜看畫的是什麼",
       "yourTurn": "你的回合",

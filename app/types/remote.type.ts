@@ -6,12 +6,6 @@ export enum RemotePromptCategory {
   Vegetable = 'vegetable',
 }
 
-export enum RemoteRoundStatus {
-  Drawing = 'drawing',
-  Solved = 'solved',
-  Skipped = 'skipped',
-}
-
 export interface RemoteDrawingPrompt {
   answerKey: string
   category: RemotePromptCategory
@@ -28,8 +22,6 @@ export interface RemoteDrawStroke {
 export interface RemoteGameState {
   drawerRole: RealtimeRole
   promptIndex: number
-  round: number
-  status: RemoteRoundStatus
 }
 
 export interface RemoteGameStatePayload {
@@ -37,20 +29,15 @@ export interface RemoteGameStatePayload {
 }
 
 export interface RemoteDrawPayload {
-  round: number
   stroke: RemoteDrawStroke
 }
 
 export interface RemoteGuessPayload {
   guess: string
-  round: number
 }
 
-export interface RemoteGiveUpPayload {
-  round: number
-}
+export type RemoteGiveUpPayload = Record<string, never>
 
 export interface RemoteUndoPayload {
-  round: number
   strokeId: string
 }
