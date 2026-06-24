@@ -61,6 +61,7 @@
     "connecting": "正在連接",
     "offline": "連線中斷",
     "desktopHint": "保持這個頁面開啟，作為遊戲的一方",
+    "networkHint": "如果一直連不上，請先關閉 iCloud 私密傳送、VPN 或代理後再試。",
     "techStack": "WebSocket · QR pairing · Canvas · Reconnect · Realtime game state",
     "controller": {
       "eyebrow": "DRAW & GUESS",
@@ -122,6 +123,7 @@
     "room": "ROOM",
     "qrAlt": "加入傳輸房間的 QR Code",
     "privacyHint": "檔案只存在兩台裝置的瀏覽器記憶體，不會上傳到本站。單檔上限 50 MB。",
+    "networkHint": "如果一直連不上，請先關閉 iCloud 私密傳送、VPN 或代理後再試。",
     "chatEyebrow": "WEB AIRDROP",
     "chatTitle": "即時傳輸",
     "dataChannel": "WebRTC DataChannel",

@@ -61,6 +61,7 @@
     "connecting": "Connecting",
     "offline": "Connection lost",
     "desktopHint": "Keep this page open as one side of the game",
+    "networkHint": "If pairing keeps failing, turn off iCloud Private Relay, VPN, or proxy and try again.",
     "techStack": "WebSocket · QR pairing · Canvas · Reconnect · Realtime game state",
     "controller": {
       "eyebrow": "DRAW & GUESS",
@@ -122,6 +123,7 @@
     "room": "ROOM",
     "qrAlt": "QR Code for joining the transfer room",
     "privacyHint": "Files only live in the two browsers' memory and are never uploaded to this site. Maximum file size: 50 MB.",
+    "networkHint": "If pairing keeps failing, turn off iCloud Private Relay, VPN, or proxy and try again.",
     "chatEyebrow": "WEB AIRDROP",
     "chatTitle": "Realtime transfer",
     "dataChannel": "WebRTC DataChannel",

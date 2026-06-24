@@ -43,6 +43,9 @@ const { t } = useI18n()
     <p class="mt-5 text-sm leading-6">
       {{ t('drop.privacyHint') }}
     </p>
+    <p class="mt-3 border border-ink/20 bg-white/70 px-3 py-2 text-xs leading-5 font-semibold text-black/60">
+      {{ t('drop.networkHint') }}
+    </p>
 
     <details class="mt-5 border-2 border-ink bg-white p-3 text-xs">
       <summary class="cursor-pointer font-black">

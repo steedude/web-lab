@@ -46,5 +46,8 @@ const { t } = useI18n()
     <p class="mt-4 text-center text-[11px] leading-5 font-semibold text-black/45">
       {{ t('remote.desktopHint') }}
     </p>
+    <p class="mt-3 rounded-xl border border-ink/15 bg-paper px-3 py-2 text-center text-[11px] leading-5 font-semibold text-black/55">
+      {{ t('remote.networkHint') }}
+    </p>
   </aside>
 </template>
