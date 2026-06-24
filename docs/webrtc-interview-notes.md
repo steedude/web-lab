@@ -334,24 +334,6 @@ DTLS = Datagram Transport Layer Security。
 防竄改
 ```
 
-### UDP
-
-UDP 是傳輸層協定。
-
-特色：
-
-```txt
-低延遲
-本身不保證可靠
-本身不保證順序
-```
-
-但使用 UDP 不代表上層應用一定不可靠。WebRTC DataChannel 會在 UDP 上方透過 SCTP 提供可靠、有序傳輸。
-
-### IP
-
-IP 是網路層，負責定址與路由。
-
 ### DataChannel over SCTP over DTLS over UDP
 
 DataChannel 大致可以理解成：
