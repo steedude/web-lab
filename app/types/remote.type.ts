@@ -18,6 +18,7 @@ export interface RemoteDrawingPrompt {
 }
 
 export interface RemoteDrawStroke {
+  id: string
   x0: number
   x1: number
   y0: number
@@ -47,4 +48,9 @@ export interface RemoteGuessPayload {
 
 export interface RemoteGiveUpPayload {
   round: number
+}
+
+export interface RemoteUndoPayload {
+  round: number
+  strokeId: string
 }

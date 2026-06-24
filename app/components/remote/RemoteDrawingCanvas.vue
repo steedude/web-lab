@@ -14,6 +14,7 @@ const emit = defineEmits<{
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const drawing = ref(false)
+const activeStrokeId = ref('')
 const lastPoint = ref<{ x: number, y: number } | null>(null)
 
 function getContext() {
@@ -83,6 +84,7 @@ function startDrawing(event: PointerEvent) {
     return
 
   drawing.value = true
+  activeStrokeId.value = crypto.randomUUID()
   lastPoint.value = getNormalizedPoint(event)
   canvasRef.value?.setPointerCapture(event.pointerId)
 }
@@ -97,6 +99,7 @@ function moveDrawing(event: PointerEvent) {
     return
 
   const stroke: RemoteDrawStroke = {
+    id: activeStrokeId.value,
     x0: previous.x,
     x1: point.x,
     y0: previous.y,
@@ -108,6 +111,7 @@ function moveDrawing(event: PointerEvent) {
 
 function stopDrawing() {
   drawing.value = false
+  activeStrokeId.value = ''
   lastPoint.value = null
 }
 

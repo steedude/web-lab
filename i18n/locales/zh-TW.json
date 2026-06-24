@@ -108,6 +108,7 @@
       "submitGuess": "送出答案",
       "waitForGuess": "對方正在猜，繼續畫吧！",
       "waitingForPeer": "等待另一位玩家加入。",
+      "undo": "上一步",
       "giveUp": "放棄 / 跳過",
       "ruleHint": "猜對或放棄後會自動清空畫布、交換畫畫的人。",
       "correctResult": "答對了！答案是「{answer}」。",

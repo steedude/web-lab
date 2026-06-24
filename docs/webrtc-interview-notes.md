@@ -385,6 +385,21 @@ chunkSize = 16KB
 
 16KB 是應用層切檔大小，不代表網路真實 packet 都是 16KB。
 
+### RTT
+
+RTT = Round Trip Time，意思是封包從本機送到對方，再收到回應所花的來回時間。
+
+在 WebRTC debug 裡，RTT 可以用來觀察目前選中的 candidate pair 延遲高不高：
+
+```txt
+RTT 低：目前路線延遲小，控制訊息和 ACK 回來比較快
+RTT 高：目前路線延遲大，檔案傳輸可能比較容易卡住或忽快忽慢
+```
+
+RTT 不是傳輸速度本身，而是「反應時間」。例如同樣 1 MB/s，RTT 低的連線通常更穩；RTT 高時，sender 等 ACK 或 buffer 釋放的感覺會比較明顯。
+
+在我的專案裡，RTT 是透過 `RTCPeerConnection.getStats()` 讀取 selected candidate pair 的 `currentRoundTripTime`。
+
 ### packet / bytes
 
 ```txt

@@ -7,6 +7,7 @@ import type {
   RemoteGameStatePayload,
   RemoteGiveUpPayload,
   RemoteGuessPayload,
+  RemoteUndoPayload,
 } from '~/types/remote.type'
 import { REMOTE_DRAWING_PROMPTS, REMOTE_GAME_CONFIG } from '~/configs/remote.config'
 import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
@@ -39,6 +40,7 @@ const isDrawer = computed(() => state.value.drawerRole === props.role)
 const canInteract = computed(() => props.peerConnected && !props.roomFull)
 const canDraw = computed(() => canInteract.value && isDrawer.value)
 const canGuess = computed(() => canInteract.value && !isDrawer.value)
+const canUndo = computed(() => canDraw.value && strokes.value.length > 0)
 
 function normalizeAnswer(value: string) {
   return value.trim().toLocaleLowerCase().replace(/\s+/g, '')
@@ -88,6 +90,22 @@ function handleStroke(stroke: RemoteDrawStroke) {
   props.send(RealtimeMessageType.RemoteDraw, { round: state.value.round, stroke })
 }
 
+function removeStroke(strokeId: string) {
+  strokes.value = strokes.value.filter(stroke => stroke.id !== strokeId)
+}
+
+function undoLastStroke() {
+  if (!canUndo.value)
+    return
+
+  const strokeId = strokes.value.at(-1)?.id
+  if (!strokeId)
+    return
+
+  removeStroke(strokeId)
+  props.send(RealtimeMessageType.RemoteUndo, { round: state.value.round, strokeId })
+}
+
 function submitGuess() {
   if (!canGuess.value || !guess.value.trim())
     return
@@ -129,6 +147,11 @@ function applyRemoteGiveUp(payload: RemoteGiveUpPayload) {
     nextRound(RemoteRoundStatus.Skipped)
 }
 
+function applyRemoteUndo(payload: RemoteUndoPayload) {
+  if (payload.round === state.value.round)
+    removeStroke(payload.strokeId)
+}
+
 watch(() => props.latestMessage, (message) => {
   if (!message?.payload)
     return
@@ -141,6 +164,8 @@ watch(() => props.latestMessage, (message) => {
     applyRemoteGuess(message.payload as unknown as RemoteGuessPayload)
   else if (message.type === RealtimeMessageType.RemoteGiveUp)
     applyRemoteGiveUp(message.payload as unknown as RemoteGiveUpPayload)
+  else if (message.type === RealtimeMessageType.RemoteUndo)
+    applyRemoteUndo(message.payload as unknown as RemoteUndoPayload)
 })
 
 watch(() => props.peerConnected, (connected) => {
@@ -212,6 +237,16 @@ watch(() => props.peerConnected, (connected) => {
       <div v-else class="mt-5 border-2 border-ink bg-white px-4 py-4 text-sm font-black">
         {{ canInteract ? t('remote.game.waitForGuess') : t('remote.game.waitingForPeer') }}
       </div>
+
+      <button
+        v-if="isDrawer"
+        class="focus-ring mt-4 w-full border-2 border-ink bg-white px-5 py-4 font-black disabled:opacity-40"
+        :disabled="!canUndo"
+        type="button"
+        @click="undoLastStroke"
+      >
+        {{ t('remote.game.undo') }}
+      </button>
 
       <button
         class="focus-ring mt-4 w-full border-2 border-ink bg-coral px-5 py-4 font-black disabled:opacity-40"

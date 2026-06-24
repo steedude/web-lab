@@ -15,6 +15,7 @@ export enum RealtimeMessageType {
   RemoteGameState = 'remote:game-state',
   RemoteGiveUp = 'remote:give-up',
   RemoteGuess = 'remote:guess',
+  RemoteUndo = 'remote:undo',
   RoomJoin = 'room:join',
   RoomJoined = 'room:joined',
   SignalAnswer = 'signal:answer',
