@@ -76,6 +76,18 @@ function statusLabel(isReady: boolean, peerConnected: boolean) {
           {{ debug.iceConnectionState }} {{ t('drop.debug.separator') }} {{ debug.iceGatheringState }}
         </dd>
         <dt class="font-bold text-black/55">
+          {{ t('drop.debug.localIce') }}
+        </dt>
+        <dd class="break-all">
+          {{ debug.localCandidateSummary }}
+        </dd>
+        <dt class="font-bold text-black/55">
+          {{ t('drop.debug.remoteIce') }}
+        </dt>
+        <dd class="break-all">
+          {{ debug.remoteCandidateSummary }}
+        </dd>
+        <dt class="font-bold text-black/55">
           {{ t('drop.debug.signaling') }}
         </dt>
         <dd class="break-all">

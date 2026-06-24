@@ -19,8 +19,10 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     iceGatheringState: 'new',
     lastError: '',
     lastSignal: '',
+    localCandidateSummary: '0',
     localDescriptionSet: false,
     pendingIceCount: 0,
+    remoteCandidateSummary: '0',
     remoteDescriptionSet: false,
     signalingState: 'stable',
   })
@@ -31,6 +33,8 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   let incomingFile: IncomingDropFile | null = null
   let lastProgressAt = 0
   let pendingIceCandidates: RTCIceCandidateInit[] = []
+  const localCandidateCounts = new Map<string, number>()
+  const remoteCandidateCounts = new Map<string, number>()
 
   // Sender-side state keyed by file id. We keep the latest receiver ACK here so the
   // sender can avoid getting too far ahead of the device that is actually receiving.
@@ -62,6 +66,25 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   function sendControlMessage(data: DropDataMessage) {
     if (controlChannel?.readyState === 'open')
       controlChannel.send(JSON.stringify(data))
+  }
+
+  function getCandidateType(candidate?: string) {
+    return candidate?.match(/ typ ([a-z0-9]+)/i)?.[1] ?? 'unknown'
+  }
+
+  function formatCandidateSummary(counts: Map<string, number>) {
+    if (!counts.size)
+      return '0'
+
+    return Array.from(counts.entries())
+      .map(([type, count]) => `${type}:${count}`)
+      .join(' ')
+  }
+
+  function trackCandidate(counts: Map<string, number>, candidate?: string) {
+    const type = getCandidateType(candidate)
+    counts.set(type, (counts.get(type) ?? 0) + 1)
+    return formatCandidateSummary(counts)
   }
 
   function getAcknowledgedBytes(fileId: string) {
@@ -310,8 +333,10 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       updatePeerDebug()
     })
     peer.addEventListener('icecandidate', (event) => {
-      if (event.candidate)
+      if (event.candidate) {
+        debug.localCandidateSummary = trackCandidate(localCandidateCounts, event.candidate.candidate)
         room.send(RealtimeMessageType.SignalIce, { candidate: event.candidate.toJSON() })
+      }
     })
     peer.addEventListener('datachannel', (event) => {
       if (event.channel.label === DROP_CHANNEL_CONFIG.fileLabel)
@@ -323,6 +348,8 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   }
 
   async function addIceCandidate(candidate: RTCIceCandidateInit) {
+    debug.remoteCandidateSummary = trackCandidate(remoteCandidateCounts, candidate.candidate)
+
     if (!peer || !peer.remoteDescription) {
       pendingIceCandidates.push(candidate)
       debug.pendingIceCount = pendingIceCandidates.length
@@ -530,9 +557,13 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   }
 
   function cleanup() {
+    localCandidateCounts.clear()
+    remoteCandidateCounts.clear()
     outgoingProgressMap.clear()
     pendingIceCandidates = []
+    debug.localCandidateSummary = '0'
     debug.pendingIceCount = 0
+    debug.remoteCandidateSummary = '0'
     peer?.close()
     messages.value.forEach((message) => {
       if (message.url) {

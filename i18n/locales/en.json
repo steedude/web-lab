@@ -162,6 +162,8 @@
       "no": "no",
       "connection": "RTC",
       "ice": "ICE",
+      "localIce": "Local ICE",
+      "remoteIce": "Remote ICE",
       "signaling": "Signal",
       "sdp": "SDP",
       "channels": "Channels",

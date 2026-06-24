@@ -54,8 +54,10 @@ export interface DropConnectionDebug {
   iceGatheringState: string
   lastError: string
   lastSignal: string
+  localCandidateSummary: string
   localDescriptionSet: boolean
   pendingIceCount: number
+  remoteCandidateSummary: string
   remoteDescriptionSet: boolean
   signalingState: string
 }

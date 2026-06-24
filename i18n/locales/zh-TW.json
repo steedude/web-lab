@@ -162,6 +162,8 @@
       "no": "否",
       "connection": "RTC",
       "ice": "ICE",
+      "localIce": "本機 ICE",
+      "remoteIce": "對方 ICE",
       "signaling": "信令",
       "sdp": "SDP",
       "channels": "通道",
