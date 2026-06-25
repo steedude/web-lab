@@ -18,14 +18,14 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="w-full border-2 border-ink bg-white p-6 shadow-[10px_10px_0_#ad9cff] sm:p-10">
+  <section class="w-full border-2 border-ink bg-white p-6 shadow-[10px_10px_0_#ad9cff] lg:p-10">
     <p class="text-xs font-black tracking-[.24em] text-ink/50">
       {{ eyebrow }}
     </p>
-    <p v-if="statusCode" class="mt-6 font-mono text-8xl leading-none font-black text-coral sm:text-9xl">
+    <p v-if="statusCode" class="mt-6 font-mono text-8xl leading-none font-black text-coral lg:text-9xl">
       {{ statusCode }}
     </p>
-    <h1 class="mt-5 text-4xl leading-none font-black tracking-[-.055em] sm:text-6xl">
+    <h1 class="mt-5 text-4xl leading-none font-black tracking-[-.055em] lg:text-6xl">
       {{ title }}
     </h1>
     <p class="mt-5 max-w-2xl text-lg leading-8 text-ink/70">

@@ -30,7 +30,7 @@ const {
 </script>
 
 <template>
-  <main class="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:py-16">
+  <main class="mx-auto w-full max-w-7xl px-5 py-10 lg:px-8 lg:py-16">
     <NuxtLink :to="localePath('/')" class="focus-ring inline-flex font-bold hover:underline">
       {{ t('common.backHome') }}
     </NuxtLink>
@@ -40,7 +40,7 @@ const {
         <p class="text-sm font-black tracking-[.24em]">
           {{ t('links.eyebrow') }}
         </p>
-        <h1 class="mt-5 text-5xl leading-[.95] font-black tracking-[-.055em] sm:text-7xl">
+        <h1 class="mt-5 text-5xl leading-[.95] font-black tracking-[-.055em] lg:text-7xl">
           {{ t('links.title') }}
         </h1>
         <p class="mt-6 max-w-xl text-lg leading-8">

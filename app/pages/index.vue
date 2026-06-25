@@ -19,15 +19,15 @@ const features = computed(() => localizeFeaturePaths(createHomeFeatures(t), loca
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-7xl px-5 pt-12 pb-20 sm:px-8 sm:pt-20 lg:px-12">
+  <div class="mx-auto w-full max-w-7xl px-5 pt-12 pb-20 lg:px-12 lg:pt-20">
     <section class="max-w-5xl">
       <p class="font-mono text-xs font-black tracking-[0.22em] text-black/50 uppercase">
         {{ t('home.eyebrow') }}
       </p>
-      <h1 class="mt-5 text-5xl leading-[0.92] font-black tracking-[-0.07em] sm:text-7xl lg:text-[6.8rem]">
+      <h1 class="mt-5 text-5xl leading-[0.92] font-black tracking-[-0.07em] lg:text-[6.8rem]">
         {{ t('home.title') }}
       </h1>
-      <p class="mt-7 max-w-2xl text-base leading-7 font-semibold text-black/60 sm:text-lg">
+      <p class="mt-7 max-w-2xl text-base leading-7 font-semibold text-black/60 lg:text-lg">
         {{ t('home.description') }}
       </p>
     </section>

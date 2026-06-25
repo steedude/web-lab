@@ -72,7 +72,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:py-16">
+  <main class="mx-auto w-full max-w-7xl px-5 py-10 lg:px-8 lg:py-16">
     <NuxtLink :to="localePath('/')" class="focus-ring inline-flex font-bold hover:underline">
       {{ t('common.arrowLeft') }} {{ t('common.backHome') }}
     </NuxtLink>

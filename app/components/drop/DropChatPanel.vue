@@ -43,7 +43,7 @@ function fileProgress(message: DropChatItem) {
           {{ t('drop.chatTitle') }}
         </h1>
       </div>
-      <span class="hidden text-sm font-bold sm:block">{{ t('drop.dataChannel') }}</span>
+      <span class="hidden text-sm font-bold lg:block">{{ t('drop.dataChannel') }}</span>
     </header>
     <div class="flex-1 space-y-3 overflow-y-auto p-5">
       <div v-if="!messages.length" class="grid h-full min-h-72 place-items-center text-center text-ink/55">
@@ -91,7 +91,7 @@ function fileProgress(message: DropChatItem) {
         </div>
       </div>
     </div>
-    <form class="flex gap-2 border-t-2 border-ink p-3 sm:p-4" @submit.prevent="$emit('sendText')">
+    <form class="flex gap-2 border-t-2 border-ink p-3 lg:p-4" @submit.prevent="$emit('sendText')">
       <input ref="fileInput" type="file" class="hidden" @change="$emit('chooseFile', $event)">
       <button type="button" class="focus-ring border-2 border-ink px-4 text-xl font-black disabled:opacity-30" :disabled="!isReady" :aria-label="t('drop.actions.chooseFile')" @click="fileInput?.click()">
         {{ t('common.plus') }}

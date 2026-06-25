@@ -29,7 +29,7 @@ const expiryOptions = computed(() => createLinkExpiryOptions(t))
 </script>
 
 <template>
-  <form class="mt-9 border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#ad9cff] sm:p-7" @submit.prevent="$emit('submit')">
+  <form class="mt-9 border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#ad9cff] lg:p-7" @submit.prevent="$emit('submit')">
     <div class="grid grid-cols-2 gap-2 rounded-full border-2 border-ink bg-paper p-1">
       <button type="button" class="rounded-full px-4 py-3 text-sm font-black" :class="mode === LinkMode.Url ? 'bg-ink text-white' : 'bg-transparent'" @click="$emit('modeChange', LinkMode.Url)">
         {{ t('links.mode.url') }}
@@ -50,7 +50,7 @@ const expiryOptions = computed(() => createLinkExpiryOptions(t))
       <p class="mt-2 text-xs font-bold text-ink/55">
         {{ t('links.hints.imageTypes') }}
       </p>
-      <div class="mt-5 grid gap-4 md:grid-cols-2">
+      <div class="mt-5 grid gap-4 lg:grid-cols-2">
         <label class="min-w-0 text-sm font-black">
           <span class="flex items-center justify-between gap-3">
             <span>{{ t('links.fields.imageTitle') }}</span>
@@ -68,7 +68,7 @@ const expiryOptions = computed(() => createLinkExpiryOptions(t))
       </div>
     </template>
 
-    <div class="mt-5 grid gap-4 md:grid-cols-2">
+    <div class="mt-5 grid gap-4 lg:grid-cols-2">
       <label class="text-sm font-black">{{ t('links.fields.expiry') }}
         <select v-model="expiresInDays" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-3 py-3">
           <option v-for="option in expiryOptions" :key="option.value" :value="option.value">

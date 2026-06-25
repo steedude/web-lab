@@ -14,7 +14,7 @@ const { t } = useI18n()
 <template>
   <NuxtLink
     :to="to"
-    class="focus-ring group relative flex min-h-64 flex-col overflow-hidden rounded-[2rem] border-2 border-ink bg-white p-6 shadow-[7px_7px_0_#171714] transition duration-300 hover:-translate-y-2 hover:shadow-[11px_11px_0_#171714] sm:min-h-72 sm:p-8"
+    class="focus-ring group relative flex min-h-64 flex-col overflow-hidden rounded-[2rem] border-2 border-ink bg-white p-6 shadow-[7px_7px_0_#171714] transition duration-300 hover:-translate-y-2 hover:shadow-[11px_11px_0_#171714] lg:min-h-72 lg:p-8"
   >
     <div :class="accent" class="absolute -top-14 -right-14 size-44 rounded-full border-2 border-ink transition duration-500 group-hover:scale-125" />
 
@@ -26,7 +26,7 @@ const { t } = useI18n()
     </div>
 
     <div class="relative mt-auto pt-20">
-      <h2 class="max-w-xs text-3xl leading-none font-black tracking-[-0.04em] sm:text-4xl">
+      <h2 class="max-w-xs text-3xl leading-none font-black tracking-[-0.04em] lg:text-4xl">
         {{ title }}
       </h2>
       <p class="mt-4 max-w-sm text-sm leading-6 font-semibold text-black/60">

@@ -13,7 +13,7 @@ const { t } = useI18n()
     <div class="aspect-[1200/630] overflow-hidden border-b-2 border-ink bg-violet/20">
       <img :src="imageUrl" :alt="title || t('links.preview.uploadAlt')" class="h-full w-full object-contain p-3">
     </div>
-    <div class="p-5 sm:p-7">
+    <div class="p-5 lg:p-7">
       <p class="text-xs font-black tracking-[.2em]">
         {{ t('links.preview.imageEyebrow') }}
       </p>

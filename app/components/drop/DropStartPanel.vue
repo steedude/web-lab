@@ -14,17 +14,17 @@ const { t } = useI18n()
 <template>
   <section class="mt-10 grid min-w-0 gap-8 lg:grid-cols-[1.2fr_.8fr]">
     <div class="min-w-0">
-      <p class="max-w-full break-words text-xs font-black tracking-[.18em] text-ink/70 sm:text-sm sm:tracking-[.24em]">
+      <p class="max-w-full break-words text-xs font-black tracking-[.18em] text-ink/70 lg:text-sm lg:tracking-[.24em]">
         {{ t('drop.eyebrow') }}
       </p>
-      <h1 class="mt-5 max-w-4xl text-[clamp(3rem,13vw,4.5rem)] leading-[.95] font-black tracking-[-.055em] break-words sm:text-7xl">
+      <h1 class="mt-5 max-w-4xl text-[clamp(3rem,13vw,4.5rem)] leading-[.95] font-black tracking-[-.055em] break-words lg:text-7xl">
         {{ t('drop.title') }}
       </h1>
       <p class="mt-6 max-w-2xl break-words text-lg leading-8">
         {{ t('drop.description') }}
       </p>
     </div>
-    <div class="min-w-0 border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#171714] sm:p-7">
+    <div class="min-w-0 border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#171714] lg:p-7">
       <button class="focus-ring w-full border-2 border-ink bg-sky px-5 py-5 text-left text-xl font-black transition hover:-translate-y-1" @click="$emit('start', RealtimeRole.DropHost)">
         {{ t('drop.actions.createRoom') }} <span class="float-right">{{ t('common.arrowRight') }}</span>
       </button>

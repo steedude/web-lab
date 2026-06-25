@@ -64,17 +64,17 @@ useSeoMeta({
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-7xl px-5 pt-8 pb-16 sm:px-8 lg:px-12">
+  <div class="mx-auto w-full max-w-7xl px-5 pt-8 pb-16 lg:px-12">
     <NuxtLink :to="localePath('/')" class="focus-ring inline-flex rounded-full py-2 text-xs font-black underline decoration-2 underline-offset-4">
       {{ t('common.arrowLeft') }} {{ t('common.backHome') }}
     </NuxtLink>
 
     <section class="mt-8 grid min-w-0 items-end gap-8 lg:grid-cols-[1fr_21rem]">
       <div class="min-w-0">
-        <p class="break-words font-mono text-xs font-black tracking-[0.16em] text-black/50 sm:tracking-[0.2em]">
+        <p class="break-words font-mono text-xs font-black tracking-[0.16em] text-black/50 lg:tracking-[0.2em]">
           {{ t('draw.eyebrow') }}
         </p>
-        <h1 class="mt-4 max-w-4xl text-[clamp(3rem,13vw,4.5rem)] leading-[0.94] font-black tracking-[-0.065em] break-words sm:text-7xl">
+        <h1 class="mt-4 max-w-4xl text-[clamp(3rem,13vw,4.5rem)] leading-[0.94] font-black tracking-[-0.065em] break-words lg:text-7xl">
           {{ t('draw.title') }}
         </h1>
         <p class="mt-6 max-w-2xl break-words text-base leading-7 font-semibold text-black/60">

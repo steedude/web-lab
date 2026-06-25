@@ -61,13 +61,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="mx-auto min-h-[calc(100vh-96px)] w-full max-w-6xl px-5 py-10 sm:px-8 lg:py-16">
+  <main class="mx-auto min-h-[calc(100vh-96px)] w-full max-w-6xl px-5 py-10 lg:px-8 lg:py-16">
     <NuxtLink :to="localePath('/links')" class="focus-ring inline-flex font-bold hover:underline">
       {{ t('image.backToLinks') }}
     </NuxtLink>
 
     <section class="mt-10 overflow-hidden border-2 border-ink bg-white shadow-[10px_10px_0_#ad9cff]">
-      <div class="border-b-2 border-ink bg-paper px-5 py-4 sm:px-7">
+      <div class="border-b-2 border-ink bg-paper px-5 py-4 lg:px-7">
         <p class="text-xs font-black tracking-[.22em] text-ink/55">
           {{ t('image.eyebrow') }}
         </p>
@@ -80,14 +80,14 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="isResolved" class="grid gap-0 lg:grid-cols-[1.15fr_.85fr]">
-        <div class="grid min-h-[420px] place-items-center border-b-2 border-ink bg-violet/15 p-5 lg:border-r-2 lg:border-b-0 sm:p-8">
+        <div class="grid min-h-[420px] place-items-center border-b-2 border-ink bg-violet/15 p-5 lg:border-r-2 lg:border-b-0 lg:p-8">
           <img :src="image!.image_url!" :alt="image?.title || t('image.fallbackTitle')" class="max-h-[62vh] max-w-full border-2 border-ink bg-white object-contain shadow-[6px_6px_0_#171714]">
         </div>
-        <div class="p-6 sm:p-8">
+        <div class="p-6 lg:p-8">
           <p class="text-xs font-black tracking-[.2em] text-ink/55">
             {{ t('image.unlocked') }}
           </p>
-          <h1 class="mt-4 break-all text-4xl leading-none font-black tracking-[-.055em] [overflow-wrap:anywhere] sm:text-6xl">
+          <h1 class="mt-4 break-all text-4xl leading-none font-black tracking-[-.055em] [overflow-wrap:anywhere] lg:text-6xl">
             {{ image?.title || t('image.fallbackTitle') }}
           </h1>
           <p v-if="image?.description" class="mt-5 break-all text-lg leading-8 text-ink/70 [overflow-wrap:anywhere]">
@@ -99,7 +99,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <form v-else-if="needsPassword" class="mx-auto max-w-md p-6 sm:p-10" @submit.prevent="submitPassword">
+      <form v-else-if="needsPassword" class="mx-auto max-w-md p-6 lg:p-10" @submit.prevent="submitPassword">
         <h1 class="text-4xl leading-none font-black tracking-[-.055em]">
           {{ t('image.protectedTitle') }}
         </h1>

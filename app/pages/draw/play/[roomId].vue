@@ -27,7 +27,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-[calc(100vh-80px)] w-full max-w-5xl flex-col px-4 pt-4 pb-8 select-none sm:px-6">
+  <main class="mx-auto flex min-h-[calc(100vh-80px)] w-full max-w-5xl flex-col px-4 pt-4 pb-8 select-none lg:px-6">
     <div class="flex items-center justify-between gap-3">
       <NuxtLink :to="localePath('/')" class="focus-ring rounded-full py-2 text-xs font-black underline decoration-2 underline-offset-4">
         {{ t('common.arrowLeft') }} {{ t('common.backHome') }}
