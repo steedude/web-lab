@@ -181,6 +181,7 @@
     "refreshNote": "重新整理頁面後會重新要求密碼。",
     "protectedTitle": "這張圖片受到保護",
     "protectedDescription": "輸入密碼後，圖片會直接顯示在這個頁面。",
+    "passwordLabel": "密碼保護",
     "passwordPlaceholder": "輸入密碼",
     "verifying": "驗證中…",
     "viewImage": "查看圖片",
@@ -298,7 +299,13 @@
       "giveUp": "放棄 / 跳過",
       "ruleHint": "猜對或放棄後會自動清空畫布、交換畫畫的人。",
       "correctResult": "答對了！答案是「{answer}」。",
-      "skipResult": "已跳過，答案是「{answer}」。"
+      "peerCorrectResult": "對方答對了！",
+      "peerSkipped": "對方已跳過。",
+      "peerSkippedResult": "對方已跳過，答案是「{answer}」。",
+      "skipResult": "已跳過，答案是「{answer}」。",
+      "youCorrectResult": "答對了！答案是「{answer}」。",
+      "youSkipped": "已跳過。",
+      "youSkippedResult": "已跳過，答案是「{answer}」。"
     }
   }
 }

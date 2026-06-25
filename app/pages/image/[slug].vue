@@ -108,7 +108,7 @@ onMounted(async () => {
         </p>
         <label class="mt-6 block text-sm font-black">
           <span class="flex items-center justify-between gap-3">
-            <span>{{ t('links.fields.password') }}</span>
+            <span>{{ t('image.passwordLabel') }}</span>
             <span class="text-xs text-ink/45">{{ passwordCount }}</span>
           </span>
           <span class="mt-2 flex border-2 border-ink bg-paper">

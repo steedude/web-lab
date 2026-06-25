@@ -181,6 +181,7 @@
     "refreshNote": "Refreshing the page will ask for the password again.",
     "protectedTitle": "This image is protected",
     "protectedDescription": "Enter the password and the image will appear on this page.",
+    "passwordLabel": "Password protection",
     "passwordPlaceholder": "Enter password",
     "verifying": "Verifying…",
     "viewImage": "View image",
@@ -298,7 +299,13 @@
       "giveUp": "Give up / skip",
       "ruleHint": "Correct guesses or skips automatically clear the board and swap turns.",
       "correctResult": "Correct! The answer was {answer}.",
-      "skipResult": "Skipped. The answer was {answer}."
+      "peerCorrectResult": "The other player guessed it.",
+      "peerSkipped": "The other player skipped.",
+      "peerSkippedResult": "The other player skipped. The answer was {answer}.",
+      "skipResult": "Skipped. The answer was {answer}.",
+      "youCorrectResult": "Correct! The answer was {answer}.",
+      "youSkipped": "Skipped.",
+      "youSkippedResult": "Skipped. The answer was {answer}."
     }
   }
 }

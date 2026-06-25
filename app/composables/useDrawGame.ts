@@ -5,10 +5,12 @@ import type {
   DrawGuessPayload,
   DrawStroke,
   DrawStrokePayload,
+  DrawTurnResult,
   DrawUndoPayload,
 } from '~/types/draw.type'
 import type { RealtimeMessage, RealtimeRole } from '~/types/realtime.type'
 import { DRAW_GAME_CONFIG, DRAW_PROMPTS } from '~/configs/draw.config'
+import { DrawTurnOutcome } from '~/types/draw.type'
 import { RealtimeMessageType, RealtimeRole as RealtimeRoleValue } from '~/types/realtime.type'
 
 export interface UseDrawGameOptions {
@@ -39,8 +41,8 @@ export function useDrawGame(options: UseDrawGameOptions) {
   const canGuess = computed(() => canInteract.value && !isDrawer.value)
   const canUndo = computed(() => canDraw.value && strokes.value.length > 0)
 
-  // 筆畫以小指令同步，而不是同步整張 canvas。
-  // 這樣復原時只要在兩台裝置移除最後一筆，不需要從圖片快照重畫。
+  // 畫布只同步筆畫座標，不同步整張圖片，降低每次傳輸的資料量。
+  // 接收端收到同一筆座標後，用自己的 canvas 重畫出相同筆畫。
   function handleStroke(stroke: DrawStroke) {
     if (!canDraw.value)
       return
@@ -73,8 +75,8 @@ export function useDrawGame(options: UseDrawGameOptions) {
     if (!canInteract.value)
       return
 
-    options.send(RealtimeMessageType.DrawGiveUp, {})
-    nextTurn(false)
+    const result = createTurnResult(DrawTurnOutcome.Skip, options.role)
+    nextTurn(result)
   }
 
   watch(options.latestMessage, (message) => {
@@ -86,9 +88,9 @@ export function useDrawGame(options: UseDrawGameOptions) {
     else if (message.type === RealtimeMessageType.DrawStroke)
       applyDrawStroke(message.payload as unknown as DrawStrokePayload)
     else if (message.type === RealtimeMessageType.DrawGuess)
-      applyDrawGuess(message.payload as unknown as DrawGuessPayload)
+      applyDrawGuess(message.payload as unknown as DrawGuessPayload, message.from)
     else if (message.type === RealtimeMessageType.DrawGiveUp)
-      applyDrawGiveUp(message.payload as unknown as DrawGiveUpPayload)
+      applyDrawGiveUp(message.payload as unknown as DrawGiveUpPayload, message.from)
     else if (message.type === RealtimeMessageType.DrawUndo)
       applyDrawUndo(message.payload as unknown as DrawUndoPayload)
   })
@@ -127,8 +129,8 @@ export function useDrawGame(options: UseDrawGameOptions) {
     return normalized === normalizeAnswer(answer.value) || normalized === normalizeAnswer(currentPrompt.value.answerKey)
   }
 
-  function sendState() {
-    options.send(RealtimeMessageType.DrawState, { state: state.value })
+  function sendState(result?: DrawTurnResult) {
+    options.send(RealtimeMessageType.DrawState, { result, state: state.value })
   }
 
   function resetBoard() {
@@ -137,10 +139,8 @@ export function useDrawGame(options: UseDrawGameOptions) {
     boardVersion.value += 1
   }
 
-  function nextTurn(solved: boolean) {
-    lastResult.value = solved
-      ? t('draw.game.correctResult', { answer: answer.value })
-      : t('draw.game.skipResult', { answer: answer.value })
+  function nextTurn(result: DrawTurnResult) {
+    lastResult.value = formatTurnResult(result)
 
     // 下一位畫畫者就是這題沒有畫的那台裝置。
     // 這樣不用為了判斷輪到誰，額外維護 round/status。
@@ -149,7 +149,7 @@ export function useDrawGame(options: UseDrawGameOptions) {
       promptIndex: (state.value.promptIndex + 1) % DRAW_PROMPTS.length,
     }
     resetBoard()
-    sendState()
+    sendState(result)
   }
 
   function getPeerRole() {
@@ -163,25 +163,56 @@ export function useDrawGame(options: UseDrawGameOptions) {
   function applyDrawState(payload: DrawGameStatePayload) {
     state.value = payload.state
     resetBoard()
+    lastResult.value = payload.result ? formatTurnResult(payload.result) : ''
   }
 
   function applyDrawStroke(payload: DrawStrokePayload) {
     strokes.value.push(payload.stroke)
   }
 
-  function applyDrawGuess(payload: DrawGuessPayload) {
+  function applyDrawGuess(payload: DrawGuessPayload, senderRole?: RealtimeRole) {
     if (!isDrawer.value)
       return
 
     if (isCorrectGuess(payload.guess))
-      nextTurn(true)
+      nextTurn(createTurnResult(DrawTurnOutcome.Correct, senderRole ?? getPeerRole()))
   }
 
-  function applyDrawGiveUp(_payload: DrawGiveUpPayload) {
-    nextTurn(false)
+  function applyDrawGiveUp(payload: DrawGiveUpPayload, senderRole?: RealtimeRole) {
+    const result = payload.result ?? createTurnResult(DrawTurnOutcome.Skip, senderRole ?? getPeerRole())
+    lastResult.value = formatTurnResult(result)
   }
 
   function applyDrawUndo(payload: DrawUndoPayload) {
     removeStroke(payload.strokeId)
+  }
+
+  function createTurnResult(outcome: DrawTurnOutcome, actorRole: RealtimeRole): DrawTurnResult {
+    return {
+      actorRole,
+      answerKey: currentPrompt.value.answerKey,
+      drawerRole: state.value.drawerRole,
+      outcome,
+    }
+  }
+
+  function formatTurnResult(result: DrawTurnResult) {
+    const resultAnswer = t(`draw.prompts.${result.answerKey}`)
+
+    if (result.outcome === DrawTurnOutcome.Correct) {
+      return result.actorRole === options.role
+        ? t('draw.game.youCorrectResult', { answer: resultAnswer })
+        : t('draw.game.peerCorrectResult')
+    }
+
+    if (options.role === result.drawerRole) {
+      return result.actorRole === options.role
+        ? t('draw.game.youSkipped')
+        : t('draw.game.peerSkipped')
+    }
+
+    return result.actorRole === options.role
+      ? t('draw.game.youSkippedResult', { answer: resultAnswer })
+      : t('draw.game.peerSkippedResult', { answer: resultAnswer })
   }
 }

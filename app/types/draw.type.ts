@@ -24,7 +24,20 @@ export interface DrawGameState {
   promptIndex: number
 }
 
+export enum DrawTurnOutcome {
+  Correct = 'correct',
+  Skip = 'skip',
+}
+
+export interface DrawTurnResult {
+  actorRole: RealtimeRole
+  answerKey: string
+  drawerRole: RealtimeRole
+  outcome: DrawTurnOutcome
+}
+
 export interface DrawGameStatePayload {
+  result?: DrawTurnResult
   state: DrawGameState
 }
 
@@ -36,7 +49,9 @@ export interface DrawGuessPayload {
   guess: string
 }
 
-export type DrawGiveUpPayload = Record<string, never>
+export interface DrawGiveUpPayload {
+  result?: DrawTurnResult
+}
 
 export interface DrawUndoPayload {
   strokeId: string
