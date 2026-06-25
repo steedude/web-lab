@@ -23,6 +23,7 @@
     "colon": "："
   },
   "home": {
+    "metaTitle": "{brand} — 前端實驗室",
     "eyebrow": "FRONTEND EXPERIMENTS / 2026",
     "title": "把瀏覽器，玩成一座遊樂場。",
     "description": "三個從實際需求長出來的前端工具：雙人畫猜、點對點傳檔，以及更好分享的短網址與圖片頁。",

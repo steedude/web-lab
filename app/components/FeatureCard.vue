@@ -14,7 +14,7 @@ const { t } = useI18n()
 <template>
   <NuxtLink
     :to="to"
-    class="focus-ring group relative flex min-h-64 flex-col overflow-hidden rounded-[2rem] border-2 border-ink bg-white p-6 shadow-[7px_7px_0_#171714] transition duration-300 hover:-translate-y-2 hover:shadow-[11px_11px_0_#171714] lg:min-h-72 lg:p-8"
+    class="focus-ring group relative flex min-h-64 flex-col overflow-hidden rounded-4xl border-2 border-ink bg-white p-6 shadow-[7px_7px_0_#171714] transition duration-300 hover:-translate-y-2 hover:shadow-[11px_11px_0_#171714] lg:min-h-72 lg:p-8"
   >
     <div :class="accent" class="absolute -top-14 -right-14 size-44 rounded-full border-2 border-ink transition duration-500 group-hover:scale-125" />
 

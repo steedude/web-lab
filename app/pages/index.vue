@@ -11,7 +11,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 
 useSeoMeta({
-  title: () => `${t('brand')} — Frontend Experiments`,
+  title: () => t('home.metaTitle', { brand: t('brand') }),
   description: () => t('home.description'),
 })
 

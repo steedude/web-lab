@@ -23,6 +23,7 @@
     "colon": ": "
   },
   "home": {
+    "metaTitle": "{brand} — Frontend Experiments",
     "eyebrow": "FRONTEND EXPERIMENTS / 2026",
     "title": "Turning the browser into a playground.",
     "description": "Three frontend tools grown from real needs: a two-player drawing game, peer-to-peer transfer, and smarter short links with image pages.",

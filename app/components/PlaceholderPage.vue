@@ -12,7 +12,7 @@ const localePath = useLocalePath()
 
 <template>
   <div class="mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-5xl items-center px-5 py-16 lg:px-8">
-    <section class="relative w-full overflow-hidden rounded-[2.5rem] border-2 border-ink bg-white p-8 shadow-[9px_9px_0_#171714] lg:p-14">
+    <section class="relative w-full overflow-hidden rounded-5xl border-2 border-ink bg-white p-8 shadow-[9px_9px_0_#171714] lg:p-14">
       <div :class="accent" class="absolute -top-32 -right-24 size-80 rounded-full border-2 border-ink" />
       <p class="relative font-mono text-xs font-black tracking-[0.2em]">
         {{ t('placeholder.experiment', { index }) }}

@@ -16,7 +16,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <aside class="h-fit rounded-[2rem] border-2 border-ink bg-white p-5 shadow-[7px_7px_0_#171714]">
+  <aside class="h-fit rounded-4xl border-2 border-ink bg-white p-5 shadow-[7px_7px_0_#171714]">
     <div class="flex items-center justify-between gap-3">
       <span class="text-xs font-black">{{ t('draw.room') }}</span>
       <span class="inline-flex items-center gap-2 text-[11px] font-black">
