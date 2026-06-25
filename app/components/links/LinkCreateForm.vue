@@ -2,6 +2,7 @@
 import type { LinkExpiryDay } from '~/configs/link.config'
 import { LINK_EXPIRY_OPTIONS, LINK_FORM_LIMITS } from '~/configs/link.config'
 import { LinkMode } from '~/types/link.type'
+import { getCharacterCount } from '~/utils/link.util'
 
 defineProps<{
   canCreate: boolean
@@ -24,10 +25,6 @@ const imageTitle = defineModel<string>('imageTitle', { required: true })
 const imageDescription = defineModel<string>('imageDescription', { required: true })
 const expiresInDays = defineModel<LinkExpiryDay>('expiresInDays', { required: true })
 const { t } = useI18n()
-
-function characterCount(value: string, maxLength: number) {
-  return `${value.length}/${maxLength}`
-}
 </script>
 
 <template>
@@ -56,14 +53,14 @@ function characterCount(value: string, maxLength: number) {
         <label class="min-w-0 text-sm font-black">
           <span class="flex items-center justify-between gap-3">
             <span>{{ t('links.fields.imageTitle') }}</span>
-            <span class="text-xs text-ink/45">{{ characterCount(imageTitle, LINK_FORM_LIMITS.title) }}</span>
+            <span class="text-xs text-ink/45">{{ getCharacterCount(imageTitle, LINK_FORM_LIMITS.title) }}</span>
           </span>
           <input v-model="imageTitle" type="text" :maxlength="LINK_FORM_LIMITS.title" :placeholder="t('links.placeholders.imageTitle')" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
         </label>
         <label class="min-w-0 text-sm font-black">
           <span class="flex items-center justify-between gap-3">
             <span>{{ t('links.fields.imageDescription') }}</span>
-            <span class="text-xs text-ink/45">{{ characterCount(imageDescription, LINK_FORM_LIMITS.description) }}</span>
+            <span class="text-xs text-ink/45">{{ getCharacterCount(imageDescription, LINK_FORM_LIMITS.description) }}</span>
           </span>
           <input v-model="imageDescription" type="text" :maxlength="LINK_FORM_LIMITS.description" :placeholder="t('links.placeholders.imageDescription')" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4">
         </label>
@@ -81,7 +78,7 @@ function characterCount(value: string, maxLength: number) {
       <label class="min-w-0 text-sm font-black">
         <span class="flex items-center justify-between gap-3">
           <span>{{ t('links.fields.password') }}</span>
-          <span class="text-xs text-ink/45">{{ characterCount(password, LINK_FORM_LIMITS.password) }}</span>
+          <span class="text-xs text-ink/45">{{ getCharacterCount(password, LINK_FORM_LIMITS.password) }}</span>
         </span>
         <span class="mt-2 flex border-2 border-ink bg-paper">
           <input v-model="password" :type="showPassword ? 'text' : 'password'" :maxlength="LINK_FORM_LIMITS.password" autocomplete="new-password" :placeholder="t('links.placeholders.password')" class="focus-ring min-w-0 flex-1 bg-transparent px-4 py-3 outline-none">

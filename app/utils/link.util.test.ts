@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LINK_SCREENSHOT_CONFIG } from '~/configs/link.config'
-import { getHostname, getPreviewImage, getWebsiteScreenshotUrl } from './link.util'
+import { getCharacterCount, getHostname, getPreviewImage, getWebsiteScreenshotUrl } from './link.util'
 
 describe('link utilities', () => {
   it('extracts hostnames from valid URLs only', () => {
@@ -19,5 +19,9 @@ describe('link utilities', () => {
     expect(screenshotUrl).toContain(LINK_SCREENSHOT_CONFIG.provider)
     expect(screenshotUrl).toContain('screenshot=true')
     expect(screenshotUrl).toContain(encodeURIComponent('https://example.com/article'))
+  })
+
+  it('formats text length counters', () => {
+    expect(getCharacterCount('hello', 20)).toBe('5/20')
   })
 })

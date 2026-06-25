@@ -1,10 +1,10 @@
-import type { DropChatItem, DropConnectionDebug, DropDataMessage, IncomingDropFile, OutgoingDropFileProgress } from '~/types/drop.type'
+import type { DropChatItem, DropDataMessage, DropStatsSnapshot, IncomingDropFile, OutgoingDropFileProgress } from '~/types/drop.type'
 import type { RealtimeMessage } from '~/types/realtime.type'
 import { DROP_CHANNEL_CONFIG, DROP_DEBUG_CONFIG, DROP_FILE_TRANSFER_CONFIG, DROP_RTC_CONFIG } from '~/configs/realtime.config'
 import { DropFileTransferStatus, DropMessageKind } from '~/types/drop.type'
 import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
+import { createDropConnectionDebug, createDropStatsSnapshot, resetDropTransportDebug, trackDropCandidate, updateDropTransportDebug } from '~/utils/drop-debug.util'
 import { createDropFileMessage, getDropFileProgress, getTransferSpeed } from '~/utils/drop.util'
-import { formatBytes } from '~/utils/file.util'
 
 export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost | RealtimeRole.DropGuest>) {
   const { t } = useI18n()
@@ -12,29 +12,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   const messages = ref<DropChatItem[]>([])
   const connectionState = ref<RTCPeerConnectionState>('new')
   const channelState = ref<RTCDataChannelState>('closed')
-  const debug = reactive<DropConnectionDebug>({
-    availableOutgoingBitrate: '—',
-    bufferedAmount: '0 B',
-    bytesSummary: '0 B / 0 B',
-    candidatePath: '—',
-    connectionState: 'new',
-    controlChannelState: 'closed',
-    fileChannelState: 'closed',
-    iceConnectionState: 'new',
-    iceGatheringState: 'new',
-    lastError: '',
-    lastSignal: '',
-    localCandidateSummary: '0',
-    localDescriptionSet: false,
-    pendingIceCount: 0,
-    packetsSummary: '0 / 0',
-    remoteCandidateSummary: '0',
-    remoteDescriptionSet: false,
-    receiveRate: '0 B/s',
-    roundTripTime: '—',
-    sendRate: '0 B/s',
-    signalingState: 'stable',
-  })
+  const debug = reactive(createDropConnectionDebug())
 
   let peer: RTCPeerConnection | null = null
   let controlChannel: RTCDataChannel | null = null
@@ -42,11 +20,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   let incomingFile: IncomingDropFile | null = null
   let lastProgressAt = 0
   let statsTimer: ReturnType<typeof setInterval> | null = null
-  let lastStatsSnapshot = {
-    bytesReceived: 0,
-    bytesSent: 0,
-    timestamp: 0,
-  }
+  let lastStatsSnapshot: DropStatsSnapshot = createDropStatsSnapshot()
   const localCandidateCounts = new Map<string, number>()
   const remoteCandidateCounts = new Map<string, number>()
 
@@ -55,6 +29,32 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   const outgoingProgressMap = new Map<string, OutgoingDropFileProgress>()
 
   const isReady = computed(() => channelState.value === 'open' && connectionState.value === 'connected')
+
+  function waitUntil(condition: () => boolean, intervalMs = DROP_FILE_TRANSFER_CONFIG.ackPollIntervalMs) {
+    if (condition())
+      return Promise.resolve()
+
+    return new Promise<void>((resolve) => {
+      let settled = false
+      const pollTimer = setInterval(() => {
+        if (condition())
+          finish()
+      }, intervalMs)
+
+      function finish() {
+        if (settled)
+          return
+
+        settled = true
+        clearInterval(pollTimer)
+        resolve()
+      }
+    })
+  }
+
+  function areTransferChannelsClosed() {
+    return controlChannel?.readyState !== 'open' || fileChannel?.readyState !== 'open'
+  }
 
   function addSystem(text: string) {
     messages.value.push({ id: crypto.randomUUID(), kind: DropMessageKind.System, mine: false, text })
@@ -79,115 +79,17 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       controlChannel.send(JSON.stringify(data))
   }
 
-  function getCandidateType(candidate?: string) {
-    return candidate?.match(/ typ ([a-z0-9]+)/i)?.[1] ?? 'unknown'
-  }
-
-  function formatCandidateSummary(counts: Map<string, number>) {
-    if (!counts.size)
-      return '0'
-
-    return Array.from(counts.entries())
-      .map(([type, count]) => `${type}:${count}`)
-      .join(' ')
-  }
-
-  function trackCandidate(counts: Map<string, number>, candidate?: string) {
-    const type = getCandidateType(candidate)
-    counts.set(type, (counts.get(type) ?? 0) + 1)
-    return formatCandidateSummary(counts)
-  }
-
-  function resetTransportDebug() {
-    debug.availableOutgoingBitrate = '—'
-    debug.bufferedAmount = '0 B'
-    debug.bytesSummary = '0 B / 0 B'
-    debug.candidatePath = '—'
-    debug.packetsSummary = '0 / 0'
-    debug.receiveRate = '0 B/s'
-    debug.roundTripTime = '—'
-    debug.sendRate = '0 B/s'
-  }
-
-  function formatRate(bytesPerSecond: number) {
-    return `${formatBytes(Math.max(0, bytesPerSecond))}/s`
-  }
-
-  function formatBitrate(bitsPerSecond?: number) {
-    if (!bitsPerSecond)
-      return '—'
-
-    return formatRate(bitsPerSecond / 8)
-  }
-
-  function getStatsNumber(report: RTCStats, key: string) {
-    const value = (report as unknown as Record<string, unknown>)[key]
-    return typeof value === 'number' ? value : 0
-  }
-
-  function getStatsString(report: RTCStats, key: string) {
-    const value = (report as unknown as Record<string, unknown>)[key]
-    return typeof value === 'string' ? value : ''
-  }
-
-  function getSelectedCandidatePair(stats: RTCStatsReport) {
-    for (const report of stats.values()) {
-      if (report.type !== 'candidate-pair')
-        continue
-
-      const record = report as unknown as Record<string, unknown>
-      const selected = record.selected === true
-      const nominated = record.nominated === true && record.state === 'succeeded'
-      if (selected || nominated)
-        return report
-    }
-  }
-
-  function getCandidatePath(stats: RTCStatsReport, pair: RTCStats) {
-    const localCandidate = stats.get(getStatsString(pair, 'localCandidateId'))
-    const remoteCandidate = stats.get(getStatsString(pair, 'remoteCandidateId'))
-    const localType = localCandidate ? getStatsString(localCandidate, 'candidateType') : ''
-    const remoteType = remoteCandidate ? getStatsString(remoteCandidate, 'candidateType') : ''
-
-    if (!localType && !remoteType)
-      return '—'
-
-    return `${localType || '?'} → ${remoteType || '?'}`
-  }
-
   async function updateTransportStats() {
     if (!peer)
       return
 
-    const stats = await peer.getStats()
-    const selectedPair = getSelectedCandidatePair(stats)
-    const now = Date.now()
-    const bufferedAmount = (controlChannel?.bufferedAmount ?? 0) + (fileChannel?.bufferedAmount ?? 0)
-
-    debug.bufferedAmount = formatBytes(bufferedAmount)
-
-    if (!selectedPair)
-      return
-
-    const bytesSent = getStatsNumber(selectedPair, 'bytesSent')
-    const bytesReceived = getStatsNumber(selectedPair, 'bytesReceived')
-    const packetsSent = getStatsNumber(selectedPair, 'packetsSent')
-    const packetsReceived = getStatsNumber(selectedPair, 'packetsReceived')
-    const rttSeconds = getStatsNumber(selectedPair, 'currentRoundTripTime')
-    const elapsedSeconds = Math.max((now - lastStatsSnapshot.timestamp) / 1000, 0.001)
-
-    debug.availableOutgoingBitrate = formatBitrate(getStatsNumber(selectedPair, 'availableOutgoingBitrate'))
-    debug.bytesSummary = `${formatBytes(bytesSent)} / ${formatBytes(bytesReceived)}`
-    debug.candidatePath = getCandidatePath(stats, selectedPair)
-    debug.packetsSummary = `${packetsSent} / ${packetsReceived}`
-    debug.roundTripTime = rttSeconds ? `${Math.round(rttSeconds * 1000)} ms` : '—'
-
-    if (lastStatsSnapshot.timestamp) {
-      debug.sendRate = formatRate((bytesSent - lastStatsSnapshot.bytesSent) / elapsedSeconds)
-      debug.receiveRate = formatRate((bytesReceived - lastStatsSnapshot.bytesReceived) / elapsedSeconds)
-    }
-
-    lastStatsSnapshot = { bytesReceived, bytesSent, timestamp: now }
+    lastStatsSnapshot = await updateDropTransportDebug({
+      controlChannel,
+      debug,
+      fileChannel,
+      peer,
+      snapshot: lastStatsSnapshot,
+    })
   }
 
   function stopStatsPolling() {
@@ -199,7 +101,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
 
   function startStatsPolling() {
     stopStatsPolling()
-    lastStatsSnapshot = { bytesReceived: 0, bytesSent: 0, timestamp: 0 }
+    lastStatsSnapshot = createDropStatsSnapshot()
     statsTimer = setInterval(() => {
       updateTransportStats().catch((error) => {
         debug.lastError = error instanceof Error ? error.message : String(error)
@@ -382,7 +284,6 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     debug.iceGatheringState = peer?.iceGatheringState ?? 'complete'
     debug.localDescriptionSet = !!peer?.localDescription
     debug.remoteDescriptionSet = !!peer?.remoteDescription
-    debug.pendingIceCount = 0
     debug.signalingState = peer?.signalingState ?? 'closed'
 
     if (nextConnectionState === 'connected' && ['connected', 'completed'].includes(nextIceConnectionState))
@@ -442,7 +343,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
 
   function createPeer() {
     stopStatsPolling()
-    resetTransportDebug()
+    resetDropTransportDebug(debug)
     peer?.close()
     controlChannel = null
     fileChannel = null
@@ -465,7 +366,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     })
     peer.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
-        debug.localCandidateSummary = trackCandidate(localCandidateCounts, event.candidate.candidate)
+        debug.localCandidateSummary = trackDropCandidate(localCandidateCounts, event.candidate.candidate)
         room.send(RealtimeMessageType.SignalIce, { candidate: event.candidate.toJSON() })
       }
     })
@@ -479,7 +380,7 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
   }
 
   async function addIceCandidate(candidate: RTCIceCandidateInit) {
-    debug.remoteCandidateSummary = trackCandidate(remoteCandidateCounts, candidate.candidate)
+    debug.remoteCandidateSummary = trackDropCandidate(remoteCandidateCounts, candidate.candidate)
 
     if (!peer || !peer.remoteDescription)
       return
@@ -592,45 +493,11 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
       return sentBytes - acknowledgedBytes <= DROP_FILE_TRANSFER_CONFIG.maxUnackedBytes
     }
 
-    if (hasEnoughAcknowledgement())
-      return Promise.resolve()
-
-    return new Promise<void>((resolve) => {
-      let settled = false
-      const pollTimer = setInterval(() => {
-        if (hasEnoughAcknowledgement() || controlChannel?.readyState !== 'open' || fileChannel?.readyState !== 'open')
-          finish()
-      }, DROP_FILE_TRANSFER_CONFIG.ackPollIntervalMs)
-
-      function finish() {
-        if (settled)
-          return
-        settled = true
-        clearInterval(pollTimer)
-        resolve()
-      }
-    })
+    return waitUntil(() => hasEnoughAcknowledgement() || areTransferChannelsClosed())
   }
 
   function waitForRemoteReady(fileId: string) {
-    if (isRemoteReadyForFile(fileId))
-      return Promise.resolve()
-
-    return new Promise<void>((resolve) => {
-      let settled = false
-      const pollTimer = setInterval(() => {
-        if (isRemoteReadyForFile(fileId) || controlChannel?.readyState !== 'open' || fileChannel?.readyState !== 'open')
-          finish()
-      }, DROP_FILE_TRANSFER_CONFIG.ackPollIntervalMs)
-
-      function finish() {
-        if (settled)
-          return
-        settled = true
-        clearInterval(pollTimer)
-        resolve()
-      }
-    })
+    return waitUntil(() => isRemoteReadyForFile(fileId) || areTransferChannelsClosed())
   }
 
   async function sendFile(file: File) {
@@ -676,9 +543,8 @@ export function useDropPeer(roomId: Ref<string>, role: Ref<RealtimeRole.DropHost
     remoteCandidateCounts.clear()
     outgoingProgressMap.clear()
     debug.localCandidateSummary = '0'
-    debug.pendingIceCount = 0
     debug.remoteCandidateSummary = '0'
-    resetTransportDebug()
+    resetDropTransportDebug(debug)
     peer?.close()
     messages.value.forEach((message) => {
       if (message.url) {

@@ -13,6 +13,10 @@ export function getPreviewImage(image?: string | null, screenshot?: string | nul
   return screenshot || image || ''
 }
 
+export function getCharacterCount(value: string, maxLength: number) {
+  return `${value.length}/${maxLength}`
+}
+
 export function getWebsiteScreenshotUrl(value: string) {
   try {
     const url = new URL(value)

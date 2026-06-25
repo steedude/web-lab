@@ -1,16 +1,5 @@
 <script setup lang="ts">
-import type { RealtimeMessage } from '~/types/realtime.type'
-import type {
-  RemoteDrawPayload,
-  RemoteDrawStroke,
-  RemoteGameState,
-  RemoteGameStatePayload,
-  RemoteGiveUpPayload,
-  RemoteGuessPayload,
-  RemoteUndoPayload,
-} from '~/types/remote.type'
-import { REMOTE_DRAWING_PROMPTS, REMOTE_GAME_CONFIG } from '~/configs/remote.config'
-import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
+import type { RealtimeMessage, RealtimeRole } from '~/types/realtime.type'
 
 const props = defineProps<{
   latestMessage: RealtimeMessage | null
@@ -21,145 +10,28 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
-
-const state = ref<RemoteGameState>({
-  drawerRole: props.role,
-  promptIndex: REMOTE_GAME_CONFIG.initialPromptIndex,
-})
-const strokes = ref<RemoteDrawStroke[]>([])
-const boardVersion = ref(0)
-const guess = ref('')
-const lastResult = ref('')
-
-const currentPrompt = computed(() => REMOTE_DRAWING_PROMPTS[state.value.promptIndex] ?? REMOTE_DRAWING_PROMPTS[0])
-const answer = computed(() => t(`remote.prompts.${currentPrompt.value.answerKey}`))
-const categoryLabel = computed(() => t(`remote.categories.${currentPrompt.value.category}`))
-const isDrawer = computed(() => state.value.drawerRole === props.role)
-const canInteract = computed(() => props.peerConnected && !props.roomFull)
-const canDraw = computed(() => canInteract.value && isDrawer.value)
-const canGuess = computed(() => canInteract.value && !isDrawer.value)
-const canUndo = computed(() => canDraw.value && strokes.value.length > 0)
-
-function normalizeAnswer(value: string) {
-  return value.trim().toLocaleLowerCase().replace(/\s+/g, '')
-}
-
-function isCorrectGuess(value: string) {
-  const normalized = normalizeAnswer(value)
-  return normalized === normalizeAnswer(answer.value) || normalized === normalizeAnswer(currentPrompt.value.answerKey)
-}
-
-function sendState() {
-  props.send(RealtimeMessageType.RemoteGameState, { state: state.value })
-}
-
-function resetBoard() {
-  strokes.value = []
-  guess.value = ''
-  boardVersion.value += 1
-}
-
-function nextTurn(solved: boolean) {
-  lastResult.value = solved
-    ? t('remote.game.correctResult', { answer: answer.value })
-    : t('remote.game.skipResult', { answer: answer.value })
-
-  state.value = {
-    drawerRole: state.value.drawerRole === props.role ? getPeerRole() : props.role,
-    promptIndex: (state.value.promptIndex + 1) % REMOTE_DRAWING_PROMPTS.length,
-  }
-  resetBoard()
-  sendState()
-}
-
-function getPeerRole() {
-  return props.role === RealtimeRole.Desktop ? RealtimeRole.Remote : RealtimeRole.Desktop
-}
-
-function handleStroke(stroke: RemoteDrawStroke) {
-  if (!canDraw.value)
-    return
-
-  strokes.value.push(stroke)
-  props.send(RealtimeMessageType.RemoteDraw, { stroke })
-}
-
-function removeStroke(strokeId: string) {
-  strokes.value = strokes.value.filter(stroke => stroke.id !== strokeId)
-}
-
-function undoLastStroke() {
-  if (!canUndo.value)
-    return
-
-  const strokeId = strokes.value.at(-1)?.id
-  if (!strokeId)
-    return
-
-  removeStroke(strokeId)
-  props.send(RealtimeMessageType.RemoteUndo, { strokeId })
-}
-
-function submitGuess() {
-  if (!canGuess.value || !guess.value.trim())
-    return
-
-  props.send(RealtimeMessageType.RemoteGuess, { guess: guess.value })
-  guess.value = ''
-}
-
-function giveUp() {
-  if (!canInteract.value)
-    return
-
-  props.send(RealtimeMessageType.RemoteGiveUp, {})
-  nextTurn(false)
-}
-
-function applyRemoteState(payload: RemoteGameStatePayload) {
-  state.value = payload.state
-  resetBoard()
-}
-
-function applyRemoteStroke(payload: RemoteDrawPayload) {
-  strokes.value.push(payload.stroke)
-}
-
-function applyRemoteGuess(payload: RemoteGuessPayload) {
-  if (!isDrawer.value)
-    return
-
-  if (isCorrectGuess(payload.guess))
-    nextTurn(true)
-}
-
-function applyRemoteGiveUp(_payload: RemoteGiveUpPayload) {
-  nextTurn(false)
-}
-
-function applyRemoteUndo(payload: RemoteUndoPayload) {
-  removeStroke(payload.strokeId)
-}
-
-watch(() => props.latestMessage, (message) => {
-  if (!message?.payload)
-    return
-
-  if (message.type === RealtimeMessageType.RemoteGameState)
-    applyRemoteState(message.payload as unknown as RemoteGameStatePayload)
-  else if (message.type === RealtimeMessageType.RemoteDraw)
-    applyRemoteStroke(message.payload as unknown as RemoteDrawPayload)
-  else if (message.type === RealtimeMessageType.RemoteGuess)
-    applyRemoteGuess(message.payload as unknown as RemoteGuessPayload)
-  else if (message.type === RealtimeMessageType.RemoteGiveUp)
-    applyRemoteGiveUp(message.payload as unknown as RemoteGiveUpPayload)
-  else if (message.type === RealtimeMessageType.RemoteUndo)
-    applyRemoteUndo(message.payload as unknown as RemoteUndoPayload)
-})
-
-watch(() => props.peerConnected, (connected) => {
-  if (connected && props.role === 'desktop')
-    sendState()
+const {
+  answer,
+  boardVersion,
+  canDraw,
+  canGuess,
+  canInteract,
+  canUndo,
+  categoryLabel,
+  giveUp,
+  guess,
+  handleStroke,
+  isDrawer,
+  lastResult,
+  strokes,
+  submitGuess,
+  undoLastStroke,
+} = useRemoteDrawingGame({
+  latestMessage: toRef(props, 'latestMessage'),
+  peerConnected: toRef(props, 'peerConnected'),
+  role: props.role,
+  roomFull: toRef(props, 'roomFull'),
+  send: props.send,
 })
 </script>
 

@@ -1,53 +1,13 @@
+import type { ClientMessage, RealtimeClient } from './realtime.type.js'
 import { createServer } from 'node:http'
 import process from 'node:process'
 import { WebSocket, WebSocketServer } from 'ws'
-
-const host = process.env.HOST ?? '127.0.0.1'
-const port = Number(process.env.PORT ?? 3001)
-const roomPattern = /^[A-Z0-9]{6}$/
-const heartbeatIntervalMs = 30_000
-const maxPayloadBytes = 64 * 1024
-const maxRoomClients = 2
-
-enum RealtimeRole {
-  Desktop = 'desktop',
-  DropGuest = 'drop-guest',
-  DropHost = 'drop-host',
-  Remote = 'remote',
-}
-
-enum RealtimeMessageType {
-  Connected = 'connected',
-  Error = 'error',
-  PeerJoined = 'peer:joined',
-  PeerLeft = 'peer:left',
-  RoomFull = 'room:full',
-  RoomJoin = 'room:join',
-  RoomJoined = 'room:joined',
-}
-
-enum RealtimeErrorCode {
-  InvalidJoin = 'INVALID_JOIN',
-  InvalidMessage = 'INVALID_MESSAGE',
-  NotInRoom = 'NOT_IN_ROOM',
-}
+import { REALTIME_SERVER_CONFIG } from './realtime.config.js'
+import { RealtimeErrorCode, RealtimeMessageType, RealtimeRole } from './realtime.type.js'
 
 const validRoles = new Set(Object.values(RealtimeRole))
 
-interface Client extends WebSocket {
-  isAlive: boolean
-  roomId?: string
-  role?: RealtimeRole
-}
-
-interface ClientMessage {
-  type: string
-  roomId?: string
-  role?: RealtimeRole
-  payload?: unknown
-}
-
-const rooms = new Map<string, Set<Client>>()
+const rooms = new Map<string, Set<RealtimeClient>>()
 
 const server = createServer((request, response) => {
   if (request.url === '/health') {
@@ -67,15 +27,15 @@ const server = createServer((request, response) => {
 const wss = new WebSocketServer({
   server,
   path: '/ws',
-  maxPayload: maxPayloadBytes,
+  maxPayload: REALTIME_SERVER_CONFIG.maxPayloadBytes,
 })
 
-function send(client: Client, message: unknown) {
+function send(client: RealtimeClient, message: unknown) {
   if (client.readyState === WebSocket.OPEN)
     client.send(JSON.stringify(message))
 }
 
-function leaveRoom(client: Client) {
+function leaveRoom(client: RealtimeClient) {
   if (!client.roomId)
     return
 
@@ -91,20 +51,20 @@ function leaveRoom(client: Client) {
   client.role = undefined
 }
 
-function joinRoom(client: Client, message: ClientMessage) {
+function joinRoom(client: RealtimeClient, message: ClientMessage) {
   const roomId = message.roomId?.toUpperCase()
 
-  if (!roomId || !roomPattern.test(roomId) || !message.role || !validRoles.has(message.role)) {
+  if (!roomId || !REALTIME_SERVER_CONFIG.roomPattern.test(roomId) || !message.role || !validRoles.has(message.role)) {
     send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.InvalidJoin })
     return
   }
 
   leaveRoom(client)
-  const room = rooms.get(roomId) ?? new Set<Client>()
+  const room = rooms.get(roomId) ?? new Set<RealtimeClient>()
 
   // The current WebRTC features are designed as one-to-one rooms. Rejecting the third
   // socket here prevents offer / answer / ICE messages from multiple peers mixing together.
-  if (room.size >= maxRoomClients) {
+  if (room.size >= REALTIME_SERVER_CONFIG.maxRoomClients) {
     send(client, { type: RealtimeMessageType.RoomFull, roomId })
     return
   }
@@ -122,7 +82,7 @@ function joinRoom(client: Client, message: ClientMessage) {
   })
 }
 
-function relay(client: Client, message: ClientMessage) {
+function relay(client: RealtimeClient, message: ClientMessage) {
   if (!client.roomId) {
     send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.NotInRoom })
     return
@@ -134,7 +94,7 @@ function relay(client: Client, message: ClientMessage) {
   })
 }
 
-wss.on('connection', (client: Client) => {
+wss.on('connection', (client: RealtimeClient) => {
   client.isAlive = true
   client.on('pong', () => client.isAlive = true)
 
@@ -158,7 +118,7 @@ wss.on('connection', (client: Client) => {
 
 const heartbeat = setInterval(() => {
   wss.clients.forEach((socket) => {
-    const client = socket as Client
+    const client = socket as RealtimeClient
 
     if (!client.isAlive) {
       client.terminate()
@@ -168,10 +128,10 @@ const heartbeat = setInterval(() => {
     client.isAlive = false
     client.ping()
   })
-}, heartbeatIntervalMs)
+}, REALTIME_SERVER_CONFIG.heartbeatIntervalMs)
 
 wss.on('close', () => clearInterval(heartbeat))
 
-server.listen(port, host, () => {
-  process.stdout.write(`Realtime server listening on http://${host}:${port}\n`)
+server.listen(REALTIME_SERVER_CONFIG.port, REALTIME_SERVER_CONFIG.host, () => {
+  process.stdout.write(`Realtime server listening on http://${REALTIME_SERVER_CONFIG.host}:${REALTIME_SERVER_CONFIG.port}\n`)
 })

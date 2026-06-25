@@ -47,7 +47,6 @@ export interface OutgoingDropFileProgress {
 }
 
 export interface DropConnectionDebug {
-  availableOutgoingBitrate: string
   bufferedAmount: string
   bytesSummary: string
   candidatePath: string
@@ -60,14 +59,18 @@ export interface DropConnectionDebug {
   lastSignal: string
   localCandidateSummary: string
   localDescriptionSet: boolean
-  pendingIceCount: number
-  packetsSummary: string
   remoteCandidateSummary: string
   remoteDescriptionSet: boolean
   receiveRate: string
   roundTripTime: string
   sendRate: string
   signalingState: string
+}
+
+export interface DropStatsSnapshot {
+  bytesReceived: number
+  bytesSent: number
+  timestamp: number
 }
 
 export interface DropDataMessage {
