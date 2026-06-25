@@ -19,10 +19,6 @@ function toggleLocale() {
       </NuxtLink>
 
       <div class="flex items-center gap-3">
-        <span class="hidden items-center gap-2 text-xs font-bold lg:flex">
-          <span class="size-2 animate-pulse rounded-full bg-emerald-500" />
-          {{ t('systemOnline') }}
-        </span>
         <button
           type="button"
           class="focus-ring rounded-full border-2 border-ink bg-white px-4 py-2 text-xs font-black shadow-[3px_3px_0_#171714] transition hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#171714]"

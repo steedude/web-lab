@@ -62,3 +62,6 @@ export interface RealtimeMessage {
   role?: RealtimeRole
   type: RealtimeMessageType
 }
+
+/** Realtime 房間送訊息的共用函式型別，回傳 false 代表目前 WebSocket 還不能送。 */
+export type RealtimeSend = (type: RealtimeMessageType, payload?: Record<string, unknown>) => boolean

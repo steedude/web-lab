@@ -60,16 +60,16 @@ function fileProgress(message: DropChatItem) {
           {{ message.text }}
         </p>
         <div v-else class="border-2 border-ink px-4 py-3" :class="message.mine ? 'bg-acid' : 'bg-paper'">
-          <p v-if="message.kind === DropMessageKind.Text" class="whitespace-pre-wrap break-words">
+          <p v-if="message.kind === DropMessageKind.Text" class="whitespace-pre-wrap wrap-break-word">
             {{ message.text }}
           </p>
           <div v-else>
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0">
-                <a v-if="message.url" :href="message.url" :download="message.name" class="focus-ring block break-words font-black underline">
+                <a v-if="message.url" :href="message.url" :download="message.name" class="focus-ring block wrap-break-word font-black underline">
                   {{ message.name }}
                 </a>
-                <p v-else class="break-words font-black">
+                <p v-else class="wrap-break-word font-black">
                   {{ message.name }}
                 </p>
                 <p class="mt-1 text-xs font-bold text-ink/55">

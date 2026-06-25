@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { RealtimeMessage, RealtimeRole } from '~/types/realtime.type'
+import type { RealtimeMessage, RealtimeRole, RealtimeSend } from '~/types/realtime.type'
 
 const props = defineProps<{
   latestMessage: RealtimeMessage | null
   peerConnected: boolean
   role: RealtimeRole
   roomFull?: boolean
-  send: (type: string, payload?: Record<string, unknown>) => boolean
+  send: RealtimeSend
 }>()
 
 const { t } = useI18n()
@@ -61,7 +61,7 @@ const {
         </p>
       </div>
 
-      <div class="h-[min(62vh,34rem)] min-h-[22rem]">
+      <div class="h-[min(62vh,34rem)] min-h-88">
         <DrawCanvas :disabled="!canDraw" :reset-key="boardVersion" :strokes="strokes" @stroke="handleStroke" />
       </div>
     </div>

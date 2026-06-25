@@ -22,22 +22,22 @@ const joinUrl = computed(() => import.meta.client && roomId.value
   ? `${window.location.origin}/drop?room=${roomId.value}`
   : '')
 
-async function start(nextRole: RealtimeRole.DropHost | RealtimeRole.DropGuest, code?: string) {
+async function start(selectedRole: RealtimeRole.DropHost | RealtimeRole.DropGuest, code?: string) {
   const normalized = normalizeRoomCode(code || createRoomCode())
   if (!isRoomCode(normalized))
     return
 
-  role.value = nextRole
+  role.value = selectedRole
   roomId.value = normalized
   started.value = true
   await router.replace({
     query: {
-      role: nextRole === RealtimeRole.DropHost ? 'host' : 'guest',
+      role: selectedRole === RealtimeRole.DropHost ? 'host' : 'guest',
       room: normalized,
     },
   })
 
-  if (nextRole === RealtimeRole.DropHost) {
+  if (selectedRole === RealtimeRole.DropHost) {
     await nextTick()
     qrCode.value = await QRCode.toDataURL(joinUrl.value, DROP_QR_CONFIG)
   }
@@ -66,8 +66,8 @@ onMounted(() => {
   if (!isRoomCode(roomInput.value))
     return
 
-  const nextRole = roleInput.value === 'host' ? RealtimeRole.DropHost : RealtimeRole.DropGuest
-  start(nextRole, roomInput.value)
+  const selectedRole = roleInput.value === 'host' ? RealtimeRole.DropHost : RealtimeRole.DropGuest
+  start(selectedRole, roomInput.value)
 })
 </script>
 
@@ -79,7 +79,7 @@ onMounted(() => {
 
     <DropStartPanel v-if="!started" v-model:room-input="roomInput" @start="start" />
 
-    <section v-else class="mt-10 grid min-h-[670px] gap-6 lg:grid-cols-[360px_1fr]">
+    <section v-else class="mt-10 grid min-h-167.5 gap-6 lg:grid-cols-[360px_1fr]">
       <DropRoomSidebar :copied="copied" :debug="debug" :is-ready="isReady" :peer-connected="peerConnected" :qr-code="qrCode" :role="role" :room-id="roomId" @copy-invite="copyJoinUrl" />
       <div class="space-y-4">
         <p v-if="roomFull" class="border-2 border-ink bg-red-100 px-5 py-4 font-black shadow-[6px_6px_0_#171714]">

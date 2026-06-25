@@ -14,13 +14,13 @@ const { t } = useI18n()
 <template>
   <section class="mt-10 grid min-w-0 gap-8 lg:grid-cols-[1.2fr_.8fr]">
     <div class="min-w-0">
-      <p class="max-w-full break-words text-xs font-black tracking-[.18em] text-ink/70 lg:text-sm lg:tracking-[.24em]">
+      <p class="max-w-full wrap-break-word text-xs font-black tracking-[.18em] text-ink/70 lg:text-sm lg:tracking-[.24em]">
         {{ t('drop.eyebrow') }}
       </p>
-      <h1 class="mt-5 max-w-4xl text-[clamp(3rem,13vw,4.5rem)] leading-[.95] font-black tracking-[-.055em] break-words lg:text-7xl">
+      <h1 class="mt-5 max-w-4xl text-[clamp(3rem,13vw,4.5rem)] leading-[.95] font-black tracking-[-.055em] wrap-break-word lg:text-7xl">
         {{ t('drop.title') }}
       </h1>
-      <p class="mt-6 max-w-2xl break-words text-lg leading-8">
+      <p class="mt-6 max-w-2xl wrap-break-word text-lg leading-8">
         {{ t('drop.description') }}
       </p>
     </div>

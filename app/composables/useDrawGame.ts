@@ -8,7 +8,7 @@ import type {
   DrawTurnResult,
   DrawUndoPayload,
 } from '~/types/draw.type'
-import type { RealtimeMessage, RealtimeRole } from '~/types/realtime.type'
+import type { RealtimeMessage, RealtimeRole, RealtimeSend } from '~/types/realtime.type'
 import { DRAW_GAME_CONFIG, DRAW_PROMPTS } from '~/configs/draw.config'
 import { DrawTurnOutcome } from '~/types/draw.type'
 import { RealtimeMessageType, RealtimeRole as RealtimeRoleValue } from '~/types/realtime.type'
@@ -18,7 +18,7 @@ export interface UseDrawGameOptions {
   peerConnected: Ref<boolean>
   role: RealtimeRole
   roomFull: Ref<boolean | undefined>
-  send: (type: string, payload?: Record<string, unknown>) => boolean
+  send: RealtimeSend
 }
 
 export function useDrawGame(options: UseDrawGameOptions) {
@@ -79,6 +79,8 @@ export function useDrawGame(options: UseDrawGameOptions) {
     nextTurn(result)
   }
 
+  // 監聽 WebSocket 轉進來的最新訊息，依照 type 分派給對應的遊戲處理函式。
+  // 這裡只負責「分流」，真正的更新邏輯會放在 applyDrawState / applyDrawStroke 等函式中。
   watch(options.latestMessage, (message) => {
     if (!message?.payload)
       return
@@ -125,8 +127,8 @@ export function useDrawGame(options: UseDrawGameOptions) {
   }
 
   function isCorrectGuess(value: string) {
-    const normalized = normalizeAnswer(value)
-    return normalized === normalizeAnswer(answer.value) || normalized === normalizeAnswer(currentPrompt.value.answerKey)
+    // 只接受目前語系顯示在畫面上的答案，避免中文頁輸入英文 key 也被判定正確。
+    return normalizeAnswer(value) === normalizeAnswer(answer.value)
   }
 
   function sendState(result?: DrawTurnResult) {

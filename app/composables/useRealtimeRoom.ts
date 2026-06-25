@@ -1,4 +1,4 @@
-import type { RealtimeMessage, RealtimeRole } from '~/types/realtime.type'
+import type { RealtimeMessage, RealtimeRole, RealtimeSend } from '~/types/realtime.type'
 import { REALTIME_RETRY_CONFIG } from '~/configs/realtime.config'
 import { RealtimeMessageType, RealtimeStatus } from '~/types/realtime.type'
 
@@ -64,7 +64,8 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
 
       status.value = RealtimeStatus.Offline
       peerConnected.value = false
-      // 指數退避讓前幾次重連夠快，又不會一直狂打 VM。
+      // 連線中斷後自動重連，並用指數退避逐次拉長等待時間，
+      // 避免網路不穩時持續高頻率重連 WebSocket 伺服器。
       const delay = Math.min(REALTIME_RETRY_CONFIG.baseDelayMs * 2 ** retryCount, REALTIME_RETRY_CONFIG.maxDelayMs)
       retryCount += 1
       retryTimer = setTimeout(connect, delay)
@@ -73,7 +74,7 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
     socket.addEventListener('error', () => socket?.close())
   }
 
-  function send(type: string, payload?: Record<string, unknown>) {
+  const send: RealtimeSend = (type, payload) => {
     if (socket?.readyState !== WebSocket.OPEN)
       return false
 
