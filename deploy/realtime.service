@@ -1,5 +1,5 @@
 [Unit]
-Description=Web Lab realtime WebSocket server
+Description=Web Tool realtime WebSocket server
 After=network-online.target
 Wants=network-online.target
 
@@ -7,11 +7,11 @@ Wants=network-online.target
 Type=simple
 User=ubuntu
 Group=ubuntu
-WorkingDirectory=/srv/web-lab/current
+WorkingDirectory=/srv/web-tool/current
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=3001
-ExecStart=/usr/bin/node /srv/web-lab/current/dist/index.js
+ExecStart=/usr/bin/node /srv/web-tool/current/dist/index.js
 Restart=always
 RestartSec=3
 NoNewPrivileges=true
