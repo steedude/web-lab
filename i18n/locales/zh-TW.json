@@ -66,6 +66,7 @@
       "sending": "傳送中",
       "ready": "可下載",
       "sent": "已送達",
+      "tooLarge": "檔案不能超過 {size}。",
       "progressStats": "{received} / {total}",
       "speedStats": "・{speed}/s"
     },

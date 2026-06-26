@@ -5,7 +5,7 @@ import { DropMessageKind } from '~/types/drop.type'
 import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
 import { useDropDebugStats } from './useDropDebugStats'
 
-export interface UseDropPeerConnectionOptions {
+interface UseDropPeerConnectionOptions {
   addSystemMessage: (text: string) => void
   handleDataMessage: (data: DropDataMessage) => void
   handleFileChunk: (chunk: ArrayBuffer) => void

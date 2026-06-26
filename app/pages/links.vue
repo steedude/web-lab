@@ -4,7 +4,6 @@ import { LinkMode } from '~/types/link.type'
 const { t } = useI18n()
 const localePath = useLocalePath()
 const {
-  canCreate,
   copied,
   copyShortUrl,
   createLink,
@@ -12,21 +11,18 @@ const {
   createdPreviewImage,
   creating,
   errorMessage,
-  expiresInDays,
-  imageDescription,
-  imageTitle,
   markPreviewFailed,
-  mode,
-  onImageChange,
-  password,
   qrCode,
-  selectedImagePreview,
-  setMode,
+  resetResult,
   shouldShowCreatedPreviewImage,
-  showPassword,
-  togglePassword,
-  url,
 } = useLinkCreator()
+
+const imageDraft = ref({
+  description: '',
+  imageUrl: '',
+  mode: LinkMode.Url,
+  title: '',
+})
 </script>
 
 <template>
@@ -48,20 +44,11 @@ const {
         </p>
 
         <LinksLinkCreateForm
-          v-model:expires-in-days="expiresInDays"
-          v-model:image-description="imageDescription"
-          v-model:image-title="imageTitle"
-          v-model:mode="mode"
-          v-model:password="password"
-          v-model:url="url"
-          :can-create="canCreate"
           :creating="creating"
           :error-message="errorMessage"
-          :show-password="showPassword"
-          @image-change="onImageChange"
-          @mode-change="setMode"
+          @dirty="resetResult"
+          @draft-change="imageDraft = $event"
           @submit="createLink"
-          @toggle-password="togglePassword"
         />
       </section>
 
@@ -77,10 +64,10 @@ const {
           @image-error="markPreviewFailed"
         />
         <LinksLinkImageDraftPreview
-          v-else-if="mode === LinkMode.Image && selectedImagePreview"
-          :description="imageDescription"
-          :image-url="selectedImagePreview"
-          :title="imageTitle"
+          v-else-if="imageDraft.mode === LinkMode.Image && imageDraft.imageUrl"
+          :description="imageDraft.description"
+          :image-url="imageDraft.imageUrl"
+          :title="imageDraft.title"
         />
         <LinksLinkEmptyPreview v-else />
       </section>

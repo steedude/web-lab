@@ -1,13 +1,5 @@
-import type { DropConnectionDebug, DropStatsSnapshot } from '~/types/drop.type'
+import type { DropConnectionDebug, DropStatsSnapshot, UpdateDropTransportDebugOptions } from '~/types/drop.type'
 import { formatBytes } from '~/utils/file.util'
-
-export interface UpdateDropTransportDebugOptions {
-  controlChannel: RTCDataChannel | null
-  debug: DropConnectionDebug
-  fileChannel: RTCDataChannel | null
-  peer: RTCPeerConnection
-  snapshot: DropStatsSnapshot
-}
 
 export function createDropConnectionDebug(): DropConnectionDebug {
   return {

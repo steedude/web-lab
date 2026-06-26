@@ -1,3 +1,5 @@
+import type { LinkExpiryDay } from '~/configs/link.config'
+
 /** 連結工具目前使用的建立模式。 */
 export enum LinkMode {
   /** 建立圖片分享頁。 */
@@ -25,4 +27,14 @@ export interface ImageLinkResolve {
   password_required: boolean
   status: 'expired' | 'not_found' | 'password_required' | 'resolved'
   title: string | null
+}
+
+export interface LinkCreateFormPayload {
+  expiresInDays: LinkExpiryDay
+  image: File | null
+  imageDescription: string
+  imageTitle: string
+  mode: LinkMode
+  password: string
+  url: string
 }

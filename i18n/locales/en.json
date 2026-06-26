@@ -66,6 +66,7 @@
       "sending": "Sending",
       "ready": "Ready",
       "sent": "Delivered",
+      "tooLarge": "File must be {size} or smaller.",
       "progressStats": "{received} / {total}",
       "speedStats": "・{speed}/s"
     },

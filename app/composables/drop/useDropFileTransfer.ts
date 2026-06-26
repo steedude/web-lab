@@ -3,7 +3,7 @@ import { DROP_FILE_TRANSFER_CONFIG } from '~/configs/realtime.config'
 import { DropFileTransferStatus, DropMessageKind } from '~/types/drop.type'
 import { createDropFileMessage, getDropFileProgress, getTransferSpeed } from '~/utils/drop.util'
 
-export interface UseDropFileTransferOptions {
+interface UseDropFileTransferOptions {
   addFile: (file: DropChatItem) => void
   addText: (text: string, mine: boolean) => void
   getControlChannel: () => RTCDataChannel | null

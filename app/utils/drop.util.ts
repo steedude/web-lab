@@ -1,20 +1,5 @@
-import type { DropChatItem, DropFileTransferStatus } from '~/types/drop.type'
+import type { CreateDropFileMessageOptions, DropChatItem, TransferSpeedOptions } from '~/types/drop.type'
 import { DropMessageKind } from '~/types/drop.type'
-
-export interface CreateDropFileMessageOptions {
-  id: string
-  mine: boolean
-  name: string
-  size: number
-  status: DropFileTransferStatus
-}
-
-export interface TransferSpeedOptions {
-  currentBytes: number
-  currentTime: number
-  previousBytes: number
-  previousTime: number
-}
 
 export function createDropFileMessage(options: CreateDropFileMessageOptions): DropChatItem {
   return {

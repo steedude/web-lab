@@ -13,7 +13,7 @@ import { DRAW_GAME_CONFIG, DRAW_PROMPTS } from '~/configs/draw.config'
 import { DrawTurnOutcome } from '~/types/draw.type'
 import { RealtimeMessageType, RealtimeRole as RealtimeRoleValue } from '~/types/realtime.type'
 
-export interface UseDrawGameOptions {
+interface UseDrawGameOptions {
   latestMessage: Ref<RealtimeMessage | null>
   peerConnected: Ref<boolean>
   role: RealtimeRole

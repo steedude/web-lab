@@ -10,17 +10,6 @@ export enum LinkExpiryDay {
   OneMonth = 30,
 }
 
-type Translate = (key: string) => string
-
-export function createLinkExpiryOptions(t: Translate) {
-  return [
-    { label: t('links.expiry.forever'), value: LinkExpiryDay.Forever },
-    { label: t('links.expiry.oneDay'), value: LinkExpiryDay.OneDay },
-    { label: t('links.expiry.oneWeek'), value: LinkExpiryDay.OneWeek },
-    { label: t('links.expiry.oneMonth'), value: LinkExpiryDay.OneMonth },
-  ]
-}
-
 export const LINK_QR_CONFIG = {
   color: {
     dark: '#171714',

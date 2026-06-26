@@ -1,7 +1,7 @@
 import { DROP_DEBUG_CONFIG } from '~/configs/realtime.config'
 import { createDropConnectionDebug, createDropStatsSnapshot, resetDropTransportDebug, trackDropCandidate, updateDropTransportDebug } from '~/utils/drop-debug.util'
 
-export interface UseDropDebugStatsOptions {
+interface UseDropDebugStatsOptions {
   getControlChannel: () => RTCDataChannel | null
   getFileChannel: () => RTCDataChannel | null
   getPeer: () => RTCPeerConnection | null

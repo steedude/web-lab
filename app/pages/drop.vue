@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import QRCode from 'qrcode'
-import { DROP_QR_CONFIG } from '~/configs/realtime.config'
+import { DROP_FILE_TRANSFER_CONFIG, DROP_QR_CONFIG } from '~/configs/realtime.config'
 import { RealtimeRole } from '~/types/realtime.type'
+import { formatBytes } from '~/utils/file.util'
 import { createRoomCode, isRoomCode, normalizeRoomCode } from '~/utils/realtime.util'
 
 const route = useRoute()
@@ -14,6 +15,7 @@ const started = ref(false)
 const qrCode = ref('')
 const copied = ref(false)
 const textInput = ref('')
+const fileErrorMessage = ref('')
 const { t } = useI18n()
 const localePath = useLocalePath()
 
@@ -51,8 +53,15 @@ function sendText() {
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file)
-    sendFile(file)
+  fileErrorMessage.value = ''
+  if (file) {
+    if (file.size > DROP_FILE_TRANSFER_CONFIG.maxFileSize) {
+      fileErrorMessage.value = t('drop.file.tooLarge', { size: formatBytes(DROP_FILE_TRANSFER_CONFIG.maxFileSize) })
+    }
+    else {
+      sendFile(file)
+    }
+  }
   input.value = ''
 }
 
@@ -84,6 +93,9 @@ onMounted(() => {
       <div class="space-y-4">
         <p v-if="roomFull" class="border-2 border-ink bg-red-100 px-5 py-4 font-black shadow-[6px_6px_0_#171714]">
           {{ t('drop.status.full') }}
+        </p>
+        <p v-if="fileErrorMessage" class="border-2 border-ink bg-coral/15 px-5 py-4 font-black shadow-[6px_6px_0_#171714]">
+          {{ fileErrorMessage }}
         </p>
         <DropChatPanel v-model:text-input="textInput" :is-ready="isReady" :messages="messages" @choose-file="onFileChange" @send-text="sendText" />
       </div>

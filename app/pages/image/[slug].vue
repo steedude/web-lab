@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ImageLinkResolve } from '~/types/link.type'
 import { LINK_FORM_LIMITS } from '~/configs/link.config'
-import { getApiErrorMessage } from '~/utils/error.util'
 
 const route = useRoute()
 const slug = computed(() => String(route.params.slug || '').toLowerCase())
@@ -12,6 +11,7 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const image = ref<ImageLinkResolve | null>(null)
 const { t } = useI18n()
+const getApiErrorMessage = useApiErrorMessage()
 const localePath = useLocalePath()
 
 const needsPassword = computed(() => image.value?.status === 'password_required')
@@ -40,7 +40,7 @@ async function submitPassword() {
       password.value = ''
   }
   catch (error: any) {
-    errorMessage.value = getApiErrorMessage(error, t)
+    errorMessage.value = getApiErrorMessage(error)
   }
   finally {
     submitting.value = false
@@ -52,7 +52,7 @@ onMounted(async () => {
     await resolveImage()
   }
   catch (error: any) {
-    errorMessage.value = getApiErrorMessage(error, t)
+    errorMessage.value = getApiErrorMessage(error)
   }
   finally {
     loading.value = false
@@ -73,24 +73,24 @@ onMounted(async () => {
         </p>
       </div>
 
-      <div v-if="loading" class="grid min-h-[420px] place-items-center p-8 text-center">
+      <div v-if="loading" class="grid min-h-105 place-items-center p-8 text-center">
         <p class="font-black">
           {{ t('image.loading') }}
         </p>
       </div>
 
       <div v-else-if="isResolved" class="grid gap-0 lg:grid-cols-[1.15fr_.85fr]">
-        <div class="grid min-h-[420px] place-items-center border-b-2 border-ink bg-violet/15 p-5 lg:border-r-2 lg:border-b-0 lg:p-8">
+        <div class="grid min-h-105 place-items-center border-b-2 border-ink bg-violet/15 p-5 lg:border-r-2 lg:border-b-0 lg:p-8">
           <img :src="image!.image_url!" :alt="image?.title || t('image.fallbackTitle')" class="max-h-[62vh] max-w-full border-2 border-ink bg-white object-contain shadow-[6px_6px_0_#171714]">
         </div>
         <div class="p-6 lg:p-8">
           <p class="text-xs font-black tracking-[.2em] text-ink/55">
             {{ t('image.unlocked') }}
           </p>
-          <h1 class="mt-4 break-all text-4xl leading-none font-black tracking-[-.055em] [overflow-wrap:anywhere] lg:text-6xl">
+          <h1 class="mt-4 break-all text-4xl leading-none font-black tracking-[-.055em] wrap-anywhere lg:text-6xl">
             {{ image?.title || t('image.fallbackTitle') }}
           </h1>
-          <p v-if="image?.description" class="mt-5 break-all text-lg leading-8 text-ink/70 [overflow-wrap:anywhere]">
+          <p v-if="image?.description" class="mt-5 break-all text-lg leading-8 text-ink/70 wrap-anywhere">
             {{ image.description }}
           </p>
           <p v-if="image?.password_required" class="mt-6 border-l-4 border-sky bg-sky/20 px-4 py-3 text-sm font-bold">
@@ -144,7 +144,7 @@ onMounted(async () => {
         :to="localePath('/links')"
       />
 
-      <div v-else class="grid min-h-[360px] place-items-center p-8 text-center">
+      <div v-else class="grid min-h-90 place-items-center p-8 text-center">
         <div>
           <h1 class="text-4xl font-black">
             {{ t('image.notFoundTitle') }}

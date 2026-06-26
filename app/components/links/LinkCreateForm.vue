@@ -1,40 +1,111 @@
 <script setup lang="ts">
-import type { LinkExpiryDay } from '~/configs/link.config'
-import { createLinkExpiryOptions, LINK_FORM_LIMITS } from '~/configs/link.config'
+import type { LinkCreateFormPayload } from '~/types/link.type'
+import { LINK_FORM_LIMITS, LinkExpiryDay } from '~/configs/link.config'
 import { LinkMode } from '~/types/link.type'
 import { getCharacterCount } from '~/utils/link.util'
 
 defineProps<{
-  canCreate: boolean
   creating: boolean
   errorMessage: string
-  showPassword: boolean
 }>()
 
-defineEmits<{
-  imageChange: [event: Event]
-  modeChange: [mode: LinkMode]
-  submit: []
-  togglePassword: []
+const emit = defineEmits<{
+  dirty: []
+  draftChange: [draft: { description: string, imageUrl: string, mode: LinkMode, title: string }]
+  submit: [payload: LinkCreateFormPayload]
 }>()
 
-const mode = defineModel<LinkMode>('mode', { required: true })
-const url = defineModel<string>('url', { required: true })
-const password = defineModel<string>('password', { required: true })
-const imageTitle = defineModel<string>('imageTitle', { required: true })
-const imageDescription = defineModel<string>('imageDescription', { required: true })
-const expiresInDays = defineModel<LinkExpiryDay>('expiresInDays', { required: true })
 const { t } = useI18n()
-const expiryOptions = computed(() => createLinkExpiryOptions(t))
+const mode = ref<LinkMode>(LinkMode.Url)
+const url = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const imageTitle = ref('')
+const imageDescription = ref('')
+const expiresInDays = ref<LinkExpiryDay>(LinkExpiryDay.Forever)
+const selectedImage = ref<File | null>(null)
+const selectedImagePreview = ref('')
+
+const expiryOptions = useLinkExpiryTranslations()
+const canCreate = computed(() => mode.value === LinkMode.Url ? Boolean(url.value.trim()) : Boolean(selectedImage.value))
+
+function setMode(nextMode: LinkMode) {
+  if (mode.value === nextMode)
+    return
+
+  mode.value = nextMode
+  resetForm()
+  emitDirty()
+}
+
+function onImageChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  clearImagePreview()
+  selectedImage.value = input.files?.[0] || null
+  selectedImagePreview.value = selectedImage.value ? URL.createObjectURL(selectedImage.value) : ''
+  emitDraftChange()
+  emitDirty()
+}
+
+function submitForm() {
+  emit('submit', {
+    expiresInDays: expiresInDays.value,
+    image: selectedImage.value,
+    imageDescription: imageDescription.value,
+    imageTitle: imageTitle.value,
+    mode: mode.value,
+    password: password.value,
+    url: url.value,
+  })
+}
+
+function emitDirty() {
+  emit('dirty')
+}
+
+function emitDraftChange() {
+  emit('draftChange', {
+    description: imageDescription.value,
+    imageUrl: selectedImagePreview.value,
+    mode: mode.value,
+    title: imageTitle.value,
+  })
+}
+
+function clearImagePreview() {
+  if (selectedImagePreview.value)
+    URL.revokeObjectURL(selectedImagePreview.value)
+  selectedImagePreview.value = ''
+  selectedImage.value = null
+}
+
+function resetForm() {
+  url.value = ''
+  password.value = ''
+  showPassword.value = false
+  imageTitle.value = ''
+  imageDescription.value = ''
+  expiresInDays.value = LinkExpiryDay.Forever
+  clearImagePreview()
+  emitDraftChange()
+}
+
+watch([url, password, expiresInDays], emitDirty)
+watch([imageTitle, imageDescription], () => {
+  emitDraftChange()
+  emitDirty()
+})
+
+onBeforeUnmount(clearImagePreview)
 </script>
 
 <template>
-  <form class="mt-9 border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#ad9cff] lg:p-7" @submit.prevent="$emit('submit')">
+  <form class="mt-9 border-2 border-ink bg-white p-5 shadow-[8px_8px_0_#ad9cff] lg:p-7" @submit.prevent="submitForm">
     <div class="grid grid-cols-2 gap-2 rounded-full border-2 border-ink bg-paper p-1">
-      <button type="button" class="rounded-full px-4 py-3 text-sm font-black" :class="mode === LinkMode.Url ? 'bg-ink text-white' : 'bg-transparent'" @click="$emit('modeChange', LinkMode.Url)">
+      <button type="button" class="rounded-full px-4 py-3 text-sm font-black" :class="mode === LinkMode.Url ? 'bg-ink text-white' : 'bg-transparent'" @click="setMode(LinkMode.Url)">
         {{ t('links.mode.url') }}
       </button>
-      <button type="button" class="rounded-full px-4 py-3 text-sm font-black" :class="mode === LinkMode.Image ? 'bg-ink text-white' : 'bg-transparent'" @click="$emit('modeChange', LinkMode.Image)">
+      <button type="button" class="rounded-full px-4 py-3 text-sm font-black" :class="mode === LinkMode.Image ? 'bg-ink text-white' : 'bg-transparent'" @click="setMode(LinkMode.Image)">
         {{ t('links.mode.image') }}
       </button>
     </div>
@@ -46,7 +117,7 @@ const expiryOptions = computed(() => createLinkExpiryOptions(t))
 
     <template v-else>
       <label class="mt-5 block text-sm font-black" for="image-file">{{ t('links.fields.uploadImage') }}</label>
-      <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4" @change="$emit('imageChange', $event)">
+      <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="focus-ring mt-2 w-full border-2 border-ink bg-paper px-4 py-4" @change="onImageChange">
       <p class="mt-2 text-xs font-bold text-ink/55">
         {{ t('links.hints.imageTypes') }}
       </p>
@@ -83,7 +154,7 @@ const expiryOptions = computed(() => createLinkExpiryOptions(t))
         </span>
         <span class="mt-2 flex border-2 border-ink bg-paper">
           <input v-model="password" :type="showPassword ? 'text' : 'password'" :maxlength="LINK_FORM_LIMITS.password" autocomplete="new-password" :placeholder="t('links.placeholders.password')" class="focus-ring min-w-0 flex-1 bg-transparent px-4 py-3 outline-none">
-          <button type="button" class="border-l-2 border-ink px-3 text-xs font-black" :aria-label="showPassword ? t('common.hidePassword') : t('common.showPassword')" @click="$emit('togglePassword')">
+          <button type="button" class="border-l-2 border-ink px-3 text-xs font-black" :aria-label="showPassword ? t('common.hidePassword') : t('common.showPassword')" @click="showPassword = !showPassword">
             {{ showPassword ? t('common.hidePassword') : t('common.showPassword') }}
           </button>
         </span>

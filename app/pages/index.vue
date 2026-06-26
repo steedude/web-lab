@@ -1,12 +1,4 @@
 <script setup lang="ts">
-import { createHomeFeatures } from '~/configs/feature.config'
-
-type LocalePath = (path: string) => string
-
-function localizeFeaturePaths(features: ReturnType<typeof createHomeFeatures>, localePath: LocalePath) {
-  return features.map(feature => ({ ...feature, to: localePath(feature.to) }))
-}
-
 const { t } = useI18n()
 const localePath = useLocalePath()
 
@@ -15,7 +7,7 @@ useSeoMeta({
   description: () => t('home.description'),
 })
 
-const features = computed(() => localizeFeaturePaths(createHomeFeatures(t), localePath))
+const features = useHomeFeatureTranslations(localePath)
 </script>
 
 <template>

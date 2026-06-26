@@ -83,6 +83,29 @@ export interface DropStatsSnapshot {
   timestamp: number
 }
 
+export interface CreateDropFileMessageOptions {
+  id: string
+  mine: boolean
+  name: string
+  size: number
+  status: DropFileTransferStatus
+}
+
+export interface TransferSpeedOptions {
+  currentBytes: number
+  currentTime: number
+  previousBytes: number
+  previousTime: number
+}
+
+export interface UpdateDropTransportDebugOptions {
+  controlChannel: RTCDataChannel | null
+  debug: DropConnectionDebug
+  fileChannel: RTCDataChannel | null
+  peer: RTCPeerConnection
+  snapshot: DropStatsSnapshot
+}
+
 export interface DropDataMessage {
   id?: string
   kind: DropMessageKind
