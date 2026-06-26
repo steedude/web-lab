@@ -37,6 +37,9 @@ export default defineNuxtConfig({
       realtimeUrl: 'wss://ws.3854335.com/ws',
       supabasePublishableKey: '',
       supabaseUrl: '',
+      turnCredential: '',
+      turnUrl: '',
+      turnUsername: '',
     },
   },
   vite: {

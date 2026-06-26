@@ -1,6 +1,6 @@
 import type { DropDataMessage } from '~/types/drop.type'
 import type { RealtimeMessage, RealtimeSend } from '~/types/realtime.type'
-import { DROP_CHANNEL_CONFIG, DROP_FILE_TRANSFER_CONFIG, DROP_RTC_CONFIG } from '~/configs/realtime.config'
+import { DROP_CHANNEL_CONFIG, DROP_FILE_TRANSFER_CONFIG } from '~/configs/realtime.config'
 import { DropMessageKind } from '~/types/drop.type'
 import { RealtimeMessageType, RealtimeRole } from '~/types/realtime.type'
 import { useDropDebugStats } from './useDropDebugStats'
@@ -15,6 +15,7 @@ interface UseDropPeerConnectionOptions {
 
 export function useDropPeerConnection(options: UseDropPeerConnectionOptions) {
   const { t } = useI18n()
+  const rtcConfiguration = useDropRtcConfiguration()
   const connectionState = ref<RTCPeerConnectionState>('new')
   const channelState = ref<RTCDataChannelState>('closed')
 
@@ -96,7 +97,7 @@ export function useDropPeerConnection(options: UseDropPeerConnectionOptions) {
     controlChannel = null
     fileChannel = null
     channelState.value = 'closed'
-    peer = new RTCPeerConnection(DROP_RTC_CONFIG)
+    peer = new RTCPeerConnection(rtcConfiguration.value)
     debugStats.startStatsPolling()
     connectionState.value = peer.connectionState
     debugStats.updatePeerDebug()
