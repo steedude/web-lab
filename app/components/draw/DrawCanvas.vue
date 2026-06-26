@@ -67,9 +67,7 @@ function redraw() {
   props.strokes.forEach(drawStroke)
 }
 
-// PointerEvent 的 clientX/clientY 是整個瀏覽器視窗的座標。
-// 這裡會先扣掉 canvas 在畫面上的位置，再轉成 0～1 的比例座標。
-// 用比例儲存筆畫，可以讓不同螢幕大小的兩台裝置畫在相同相對位置。
+// 將視窗座標轉成 canvas 內的 0～1 比例，讓不同螢幕能重畫在相同相對位置。
 function getNormalizedPoint(event: PointerEvent) {
   const canvas = canvasRef.value
   if (!canvas)

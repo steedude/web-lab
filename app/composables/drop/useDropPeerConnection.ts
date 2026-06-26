@@ -102,25 +102,25 @@ export function useDropPeerConnection(options: UseDropPeerConnectionOptions) {
     connectionState.value = peer.connectionState
     debugStats.updatePeerDebug()
 
-    // 整體 PeerConnection 狀態改變，例如 connecting / connected / failed。
+    // 更新整體 RTC 連線狀態，讓 UI 能判斷是否已連上或失敗。
     peer.addEventListener('connectionstatechange', () => {
       connectionState.value = peer?.connectionState ?? 'closed'
       debugStats.updatePeerDebug()
     })
 
-    // ICE 連線檢查狀態改變，例如 checking / connected / completed。
+    // ICE 連線狀態只用來更新診斷資訊，不直接驅動畫面流程。
     peer.addEventListener('iceconnectionstatechange', debugStats.updatePeerDebug)
 
-    // 本機 ICE candidate 收集狀態改變，例如 gathering / complete。
+    // 本機 candidate 收集進度，方便確認 ICE 是否已經收集完成。
     peer.addEventListener('icegatheringstatechange', debugStats.updatePeerDebug)
 
-    // SDP offer / answer 協商狀態改變，例如 stable / have-local-offer。
+    // SDP offer / answer 狀態，方便排查協商流程卡在哪一步。
     peer.addEventListener('signalingstatechange', debugStats.updatePeerDebug)
 
-    // STUN/TURN 或 candidate 收集過程出錯時會觸發。
+    // STUN/TURN 或 candidate 收集錯誤保留在診斷區，方便排查網路問題。
     peer.addEventListener('icecandidateerror', debugStats.updatePeerDebug)
 
-    // 瀏覽器找到一個本機 ICE candidate 時觸發。
+    // 本機 candidate 交給 WebSocket 後端轉發給對方。
     peer.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
         debugStats.trackLocalCandidate(event.candidate.candidate)
@@ -128,8 +128,7 @@ export function useDropPeerConnection(options: UseDropPeerConnectionOptions) {
       }
     })
 
-    // guest 不會主動 createDataChannel，而是等 host 建好的 channel 透過 offer 協商過來。
-    // 收到 datachannel 事件後，再依照 label 分別接上 control / file channel。
+    // guest 透過 offer 收到 host 建立的 channel，再依 label 接線。
     peer.addEventListener('datachannel', (event) => {
       if (event.channel.label === DROP_CHANNEL_CONFIG.fileLabel)
         setupFileChannel(event.channel)

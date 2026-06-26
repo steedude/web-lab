@@ -28,14 +28,13 @@ export const DROP_QR_CONFIG = {
 } as const
 
 export const DROP_FILE_TRANSFER_CONFIG = {
-  // 讓 DataChannel 佇列保持輕量。Safari/WebKit 在 SCTP 需要切分較大的 binary message，
-  // 或一次排入太多 chunk 時，延遲可能會突然變得很高。
+  // 控制單次送入 DataChannel 的資料量，避免手機瀏覽器延遲突然升高。
   bufferLowThreshold: 64 * 1024,
   chunkSize: 16 * 1024,
   maxBufferedAmount: 256 * 1024,
   maxFileSize: 50 * 1024 * 1024,
   maxUnackedBytes: 128 * 1024,
-  // 有些手機瀏覽器不一定會穩定觸發 `bufferedamountlow`，所以也保留輪詢作為 fallback。
+  // bufferedamountlow 在部分瀏覽器不穩定，因此保留輪詢 fallback。
   ackPollIntervalMs: 40,
   bufferPollIntervalMs: 40,
   progressIntervalMs: 100,
@@ -52,7 +51,6 @@ export const DROP_CHANNEL_CONFIG = {
 } as const
 
 export const DROP_RTC_CONFIG = {
-  // 這個 demo 用公開 STUN 就夠了；檔案內容走 WebRTC DataChannel，
-  // VM 上的 WebSocket 只負責交換房間與信令訊息。
+  // 預設只放 STUN；TURN 會由 useDropRtcConfiguration 依環境變數補上。
   iceServers: [{ urls: 'stun:stun.cloudflare.com:3478' }],
 } satisfies RTCConfiguration

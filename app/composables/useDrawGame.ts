@@ -41,8 +41,7 @@ export function useDrawGame(options: UseDrawGameOptions) {
   const canGuess = computed(() => canInteract.value && !isDrawer.value)
   const canUndo = computed(() => canDraw.value && strokes.value.length > 0)
 
-  // 畫布只同步筆畫座標，不同步整張圖片，降低每次傳輸的資料量。
-  // 接收端收到同一筆座標後，用自己的 canvas 重畫出相同筆畫。
+  // 只同步筆畫座標，接收端再用自己的 canvas 重畫同一筆。
   function handleStroke(stroke: DrawStroke) {
     if (!canDraw.value)
       return
@@ -79,8 +78,7 @@ export function useDrawGame(options: UseDrawGameOptions) {
     nextTurn(result)
   }
 
-  // 監聽 WebSocket 轉進來的最新訊息，依照 type 分派給對應的遊戲處理函式。
-  // 這裡只負責「分流」，真正的更新邏輯會放在 applyDrawState / applyDrawStroke 等函式中。
+  // WebSocket 訊息只在這裡分流，實際狀態更新交給各 apply 函式。
   watch(options.latestMessage, (message) => {
     if (!message?.payload)
       return
@@ -98,8 +96,7 @@ export function useDrawGame(options: UseDrawGameOptions) {
   })
 
   watch(options.peerConnected, (connected) => {
-    // Draw host 負責保存初始遊戲狀態。第二台裝置加入或重連時，
-    // 重新送一次狀態，讓兩邊維持相同題目與畫畫者。
+    // peer 加入或重連時，由 host 重新同步目前題目與畫畫者。
     if (connected && options.role === RealtimeRoleValue.DrawHost)
       sendState()
   })
@@ -144,8 +141,7 @@ export function useDrawGame(options: UseDrawGameOptions) {
   function nextTurn(result: DrawTurnResult) {
     lastResult.value = formatTurnResult(result)
 
-    // 下一位畫畫者就是這題沒有畫的那台裝置。
-    // 這樣不用為了判斷輪到誰，額外維護 round/status。
+    // 下一題直接切給另一個角色，不額外維護 round/status。
     state.value = {
       drawerRole: state.value.drawerRole === options.role ? getPeerRole() : options.role,
       promptIndex: (state.value.promptIndex + 1) % DRAW_PROMPTS.length,

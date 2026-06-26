@@ -12,7 +12,7 @@ interface UseDropFileTransferOptions {
 }
 
 export function useDropFileTransfer(options: UseDropFileTransferOptions) {
-  // 用來記錄每個正在送出的檔案，對方收到多少了
+  // 記錄每個傳送中檔案的 ACK 進度。
   const outgoingProgressMap = new Map<string, OutgoingDropFileProgress>()
   const pendingFiles: File[] = []
 
@@ -245,8 +245,8 @@ export function useDropFileTransfer(options: UseDropFileTransferOptions) {
     })
   }
 
-  // 等接收端的 ACK 追上傳送進度，避免傳送端一次塞太多 binary chunk。
-  // sentBytes - acknowledgedBytes >  maxUnackedBytes 就暫停。
+  // 依接收端 ACK 控制傳送視窗，避免一次塞入太多 chunk。
+  // sentBytes - acknowledgedBytes > maxUnackedBytes 就暫停。
   function waitForPeerWindow(fileId: string, sentBytes: number, waitForFullAck = false) {
     const hasEnoughAcknowledgement = () => {
       const acknowledgedBytes = getAcknowledgedBytes(fileId)

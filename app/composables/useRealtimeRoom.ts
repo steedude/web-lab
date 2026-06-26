@@ -64,8 +64,7 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
 
       status.value = RealtimeStatus.Offline
       peerConnected.value = false
-      // 連線中斷後自動重連，並用指數退避逐次拉長等待時間，
-      // 避免網路不穩時持續高頻率重連 WebSocket 伺服器。
+      // 斷線後用指數退避重連，避免網路不穩時狂打 WebSocket。
       const delay = Math.min(REALTIME_RETRY_CONFIG.baseDelayMs * 2 ** retryCount, REALTIME_RETRY_CONFIG.maxDelayMs)
       retryCount += 1
       retryTimer = setTimeout(connect, delay)

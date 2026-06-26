@@ -62,8 +62,7 @@ function joinRoom(client: RealtimeClient, message: ClientMessage) {
   leaveRoom(client)
   const room = rooms.get(roomId) ?? new Set<RealtimeClient>()
 
-  // 目前 WebRTC 功能設計成一對一房間。第三個 socket 直接拒絕，
-  // 避免多個 peer 的 offer / answer / ICE 訊息混在一起。
+  // WebRTC 目前是一對一；第三個 socket 會讓 signal 混線，直接拒絕。
   if (room.size >= REALTIME_SERVER_CONFIG.maxRoomClients) {
     send(client, { type: RealtimeMessageType.RoomFull, roomId })
     return
