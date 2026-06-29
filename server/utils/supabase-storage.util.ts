@@ -35,3 +35,14 @@ export async function uploadPublicImage(path: string, data: Uint8Array, contentT
   }
   return publicStorageUrl(path)
 }
+
+export async function deletePublicImage(path: string) {
+  const { key, url } = storageCredentials()
+  await $fetch(`${url}/storage/v1/object/${LINK_CONFIG.storage.imageBucket}/${path}`, {
+    method: 'DELETE',
+    headers: {
+      apikey: key,
+      authorization: `Bearer ${key}`,
+    },
+  })
+}

@@ -42,16 +42,25 @@ export async function resolveShortLink(slug: string, password?: string | null) {
   return result ?? null
 }
 
-export async function createImageLink(link: NewImageLink) {
-  const [created] = await callRpc<NewImageLink>('create_image_link', {
-    link_description: link.description,
-    link_expires_at: link.expires_at,
-    link_image_url: link.image_url,
-    link_password: link.password,
-    link_slug: link.slug,
-    link_title: link.title,
+export async function createImageShortLink(imageLink: NewImageLink, shortLink: NewShortLink) {
+  const [created] = await callRpc<NewShortLink>('create_image_short_link', {
+    image_description: imageLink.description,
+    image_expires_at: imageLink.expires_at,
+    image_image_url: imageLink.image_url,
+    image_password: imageLink.password,
+    image_slug: imageLink.slug,
+    image_title: imageLink.title,
+    short_description: shortLink.description,
+    short_expires_at: shortLink.expires_at,
+    short_favicon_url: shortLink.favicon_url,
+    short_image_url: shortLink.image_url,
+    short_password: shortLink.password,
+    short_screenshot_url: shortLink.screenshot_url,
+    short_slug: shortLink.slug,
+    short_target_url: shortLink.target_url,
+    short_title: shortLink.title,
   })
-  return created ?? link
+  return created ?? shortLink
 }
 
 export async function resolveImageLink(slug: string, password?: string | null) {

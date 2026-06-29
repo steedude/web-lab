@@ -58,7 +58,7 @@ onMounted(() => {
 })
 
 usePageSeo({
-  title: () => `${t('features.draw.title')} — ${t('brand')}`,
+  title: () => `${t('features.draw.title')} - ${t('brand')}`,
   description: () => t('draw.description'),
 })
 </script>

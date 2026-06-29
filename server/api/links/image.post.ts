@@ -4,8 +4,8 @@ import { ApiErrorCode } from '../../configs/error.config'
 import { LINK_CONFIG } from '../../configs/link.config'
 import { isDuplicateError, throwApiError } from '../../utils/error.util'
 import { buildShortLinkResponse, enforceCreateRateLimit, getExpiresAt, randomSlug, sanitizePassword, sanitizeText } from '../../utils/link.util'
-import { createImageLink, createShortLink } from '../../utils/supabase-rest.util'
-import { uploadPublicImage } from '../../utils/supabase-storage.util'
+import { createImageShortLink } from '../../utils/supabase-rest.util'
+import { deletePublicImage, uploadPublicImage } from '../../utils/supabase-storage.util'
 
 const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
@@ -52,27 +52,41 @@ export default defineEventHandler(async (event) => {
 
   async function createWithSlug(slug: string) {
     const path = `${slug}/${randomUUID()}.${extensionFor(contentType)}`
-    const imageUrl = await uploadPublicImage(path, imageData, contentType)
-    await createImageLink({
-      description,
-      expires_at: expiresAt,
-      image_url: imageUrl,
-      password: imagePassword,
-      slug,
-      title,
-    })
-    const payload: Omit<NewShortLink, 'slug'> = {
-      description,
-      expires_at: expiresAt,
-      favicon_url: null,
-      image_url: imageUrl,
-      password: null,
-      screenshot_url: imageUrl,
-      target_url: `${getRequestURL(event).origin}/image/${slug}`,
-      title,
+    let uploaded = false
+    try {
+      const imageUrl = await uploadPublicImage(path, imageData, contentType)
+      uploaded = true
+      const payload: Omit<NewShortLink, 'slug'> = {
+        description,
+        expires_at: expiresAt,
+        favicon_url: null,
+        image_url: imageUrl,
+        password: null,
+        screenshot_url: imageUrl,
+        target_url: `${getRequestURL(event).origin}/image/${slug}`,
+        title,
+      }
+      const created = await createImageShortLink({
+        description,
+        expires_at: expiresAt,
+        image_url: imageUrl,
+        password: imagePassword,
+        slug,
+        title,
+      }, { ...payload, slug })
+      return buildShortLinkResponse(event, created, Boolean(imagePassword))
     }
-    const created = await createShortLink({ ...payload, slug })
-    return buildShortLinkResponse(event, created, Boolean(imagePassword))
+    catch (error: unknown) {
+      if (uploaded) {
+        try {
+          await deletePublicImage(path)
+        }
+        catch {
+          // 先保留原本的建立失敗錯誤；日後可在這裡補 log 或 orphan cleanup。
+        }
+      }
+      throw error
+    }
   }
 
   try {

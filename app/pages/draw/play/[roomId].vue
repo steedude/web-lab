@@ -21,7 +21,7 @@ const statusLabel = computed(() => {
 onMounted(connect)
 
 usePageSeo({
-  title: () => `${t('draw.player.title')} — ${roomId.value}`,
+  title: () => `${t('draw.player.title')} - ${roomId.value}`,
   description: () => t('draw.description'),
   noindex: true,
 })

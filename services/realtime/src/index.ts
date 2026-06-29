@@ -1,21 +1,20 @@
+import type { RoomDelivery } from './realtime-room.js'
 import type { ClientMessage, RealtimeClient } from './realtime.type.js'
 import { createServer } from 'node:http'
 import process from 'node:process'
 import { WebSocket, WebSocketServer } from 'ws'
+import { createRoomRegistry } from './realtime-room.js'
 import { REALTIME_SERVER_CONFIG } from './realtime.config.js'
-import { RealtimeErrorCode, RealtimeMessageType, RealtimeRole } from './realtime.type.js'
+import { RealtimeErrorCode, RealtimeMessageType } from './realtime.type.js'
 
-const validRoles = new Set(Object.values(RealtimeRole))
-
-const rooms = new Map<string, Set<RealtimeClient>>()
+const roomRegistry = createRoomRegistry<RealtimeClient>()
 
 const server = createServer((request, response) => {
   if (request.url === '/health') {
     response.writeHead(200, { 'content-type': 'application/json' })
     response.end(JSON.stringify({
-      connections: [...rooms.values()].reduce((total, room) => total + room.size, 0),
+      ...roomRegistry.stats(),
       ok: true,
-      rooms: rooms.size,
     }))
     return
   }
@@ -35,62 +34,8 @@ function send(client: RealtimeClient, message: unknown) {
     client.send(JSON.stringify(message))
 }
 
-function leaveRoom(client: RealtimeClient) {
-  if (!client.roomId)
-    return
-
-  const room = rooms.get(client.roomId)
-  room?.delete(client)
-
-  if (room?.size === 0)
-    rooms.delete(client.roomId)
-  else
-    room?.forEach(peer => send(peer, { type: RealtimeMessageType.PeerLeft, role: client.role }))
-
-  client.roomId = undefined
-  client.role = undefined
-}
-
-function joinRoom(client: RealtimeClient, message: ClientMessage) {
-  const roomId = message.roomId?.toUpperCase()
-
-  if (!roomId || !REALTIME_SERVER_CONFIG.roomPattern.test(roomId) || !message.role || !validRoles.has(message.role)) {
-    send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.InvalidJoin })
-    return
-  }
-
-  leaveRoom(client)
-  const room = rooms.get(roomId) ?? new Set<RealtimeClient>()
-
-  // WebRTC 目前是一對一；第三個 socket 會讓 signal 混線，直接拒絕。
-  if (room.size >= REALTIME_SERVER_CONFIG.maxRoomClients) {
-    send(client, { type: RealtimeMessageType.RoomFull, roomId })
-    return
-  }
-
-  const existingPeers = [...room]
-  room.add(client)
-  rooms.set(roomId, room)
-  client.roomId = roomId
-  client.role = message.role
-
-  send(client, { type: RealtimeMessageType.RoomJoined, roomId, role: message.role })
-  existingPeers.forEach((peer) => {
-    send(peer, { type: RealtimeMessageType.PeerJoined, role: message.role })
-    send(client, { type: RealtimeMessageType.PeerJoined, role: peer.role })
-  })
-}
-
-function relay(client: RealtimeClient, message: ClientMessage) {
-  if (!client.roomId) {
-    send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.NotInRoom })
-    return
-  }
-
-  rooms.get(client.roomId)?.forEach((peer) => {
-    if (peer !== client)
-      send(peer, { ...message, roomId: client.roomId, from: client.role })
-  })
+function sendAll(deliveries: RoomDelivery<RealtimeClient>[]) {
+  deliveries.forEach(({ client, message }) => send(client, message))
 }
 
 wss.on('connection', (client: RealtimeClient) => {
@@ -102,16 +47,16 @@ wss.on('connection', (client: RealtimeClient) => {
       const message = JSON.parse(data.toString()) as ClientMessage
 
       if (message.type === RealtimeMessageType.RoomJoin)
-        joinRoom(client, message)
+        sendAll(roomRegistry.join(client, message))
       else
-        relay(client, message)
+        sendAll(roomRegistry.relay(client, message))
     }
     catch {
       send(client, { type: RealtimeMessageType.Error, code: RealtimeErrorCode.InvalidMessage })
     }
   })
 
-  client.on('close', () => leaveRoom(client))
+  client.on('close', () => sendAll(roomRegistry.leave(client)))
   send(client, { type: RealtimeMessageType.Connected })
 })
 
