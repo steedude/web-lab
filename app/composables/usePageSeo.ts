@@ -5,7 +5,7 @@ interface PageSeoOptions {
   title: () => string
 }
 
-const DEFAULT_SITE_URL = 'https://tool.3854335.com'
+const DEFAULT_SITE_URL = 'https://3854335.com'
 const DEFAULT_OG_IMAGE_PATH = '/og-image.svg'
 
 export function usePageSeo(options: PageSeoOptions) {

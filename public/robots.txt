@@ -3,4 +3,4 @@ Allow: /
 Disallow: /s/
 Disallow: /image/
 
-Sitemap: https://tool.3854335.com/sitemap.xml
+Sitemap: https://3854335.com/sitemap.xml

@@ -9,7 +9,7 @@ usePageSeo({
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     'name': t('brand'),
-    'url': 'https://tool.3854335.com',
+    'url': 'https://3854335.com',
     'applicationCategory': 'UtilityApplication',
     'operatingSystem': 'Web',
     'description': t('home.description'),

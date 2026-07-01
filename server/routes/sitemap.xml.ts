@@ -1,4 +1,4 @@
-const SITE_URL = 'https://tool.3854335.com'
+const SITE_URL = 'https://3854335.com'
 const STATIC_PATHS = ['/', '/draw', '/drop', '/links'] as const
 
 export default defineEventHandler((event) => {
