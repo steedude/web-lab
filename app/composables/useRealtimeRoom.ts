@@ -13,6 +13,14 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
   let retryCount = 0
   let stopped = false
 
+  function getRealtimeUrl() {
+    if (config.public.realtimeUrl)
+      return config.public.realtimeUrl
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    return `${protocol}//${window.location.host}/ws`
+  }
+
   function joinRoom() {
     if (!socket || socket.readyState !== WebSocket.OPEN || !roomId.value)
       return
@@ -30,7 +38,7 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
 
     socket?.close()
     status.value = RealtimeStatus.Connecting
-    socket = new WebSocket(config.public.realtimeUrl)
+    socket = new WebSocket(getRealtimeUrl())
 
     socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data) as RealtimeMessage
@@ -64,7 +72,7 @@ export function useRealtimeRoom(roomId: Ref<string>, role: MaybeRef<RealtimeRole
 
       status.value = RealtimeStatus.Offline
       peerConnected.value = false
-      // 斷線後用指數退避重連，避免網路不穩時狂打 WebSocket。
+      // 使用遞增延遲重連，避免離線時一直重建 WebSocket。
       const delay = Math.min(REALTIME_RETRY_CONFIG.baseDelayMs * 2 ** retryCount, REALTIME_RETRY_CONFIG.maxDelayMs)
       retryCount += 1
       retryTimer = setTimeout(connect, delay)
